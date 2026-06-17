@@ -25,11 +25,13 @@ async function uniqueSlug(base) {
 
 // ── Phase 2 routes ───────────────────────────────────────────────────────────
 
-// GET /api/projects
+// GET /api/projects — includes resourceCount per project
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const projects = await Project.find({ owner: req.user.userId }).sort({ createdAt: -1 })
-    res.json({ data: projects })
+    const counts   = await Promise.all(projects.map(p => Resource.countDocuments({ projectId: p._id })))
+    const data     = projects.map((p, i) => ({ ...p.toObject(), resourceCount: counts[i] }))
+    res.json({ data })
   } catch (err) {
     res.status(500).json({ message: err.message })
   }

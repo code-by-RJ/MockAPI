@@ -6,10 +6,26 @@ import { TableRowSkeleton } from '../components/Skeleton'
 import RequestLogsPanel    from '../components/RequestLogsPanel'
 import ConfirmModal        from '../components/ConfirmModal'
 
-export default function ProjectDetail() {
-  const { slug }    = useParams()
+const C = { bg:"#0F172A",surface:"#1E293B",surface2:"#272F42",border:"#334155",fg:"#F8FAFC",muted:"#94A3B8",accent:"#22C55E",accentDim:"#16A34A",red:"#EF4444" }
 
-  const { toast }   = useToast()
+const FONTS = '' // fonts loaded globally via index.css
+
+const ANIM  = `@keyframes pageIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}.page-enter{animation:pageIn 0.35s ease forwards}
+  @media(max-width:600px){
+    .pd-nav{padding:0 1rem !important;height:auto !important;flex-wrap:wrap;gap:8px;padding-top:0.75rem !important;padding-bottom:0.75rem !important}
+    .pd-nav-left{gap:6px !important;flex-wrap:wrap}
+    .pd-breadcrumb-mid{display:none !important}
+    .pd-new-res-txt{display:none}
+    .pd-new-res-sm{display:inline !important}
+    .pd-base-row{flex-direction:column !important;align-items:flex-start !important;gap:10px !important}
+    .pd-base-btn{margin-left:0 !important;max-width:100% !important;width:100% !important}
+    .pd-base-btn span:first-child{max-width:calc(100vw - 120px) !important}
+  }
+`
+
+export default function ProjectDetail() {
+  const { slug }  = useParams()
+  const { toast } = useToast()
 
   const [resources, setResources]   = useState([])
   const [project, setProject]       = useState(null)
@@ -19,13 +35,12 @@ export default function ProjectDetail() {
   const [nameError, setNameError]   = useState('')
   const [nameTouched, setNameTouched] = useState(false)
   const [creating, setCreating]     = useState(false)
-
-  // Confirm modal state
+  const [baseCopied, setBaseCopied] = useState(false)
   const [confirmOpen, setConfirmOpen]           = useState(false)
   const [resourceToDelete, setResourceToDelete] = useState(null)
   const [deleting, setDeleting]                 = useState(false)
 
-  const BASE_URL = `${import.meta.env.VITE_API_URL || ''}/api/${slug}`
+  const BASE_URL = `${import.meta.env.VITE_API_URL || window.location.origin}/api/${slug}`
 
   const fetchData = useCallback(async () => {
     try {
@@ -36,24 +51,27 @@ export default function ProjectDetail() {
       const found = projRes.data.data?.find(p => p.slug === slug)
       setProject(found || null)
       setResources(resRes.data.data || [])
-    } catch {
-      toast('Failed to load project', 'error')
-    } finally {
-      setLoading(false)
-    }
+    } catch { toast('Failed to load project', 'error') }
+    finally { setLoading(false) }
   }, [slug, toast])
 
   useEffect(() => { fetchData() }, [fetchData])
 
-  const RESOURCE_NAME_RE = /^[a-z0-9][a-z0-9-]*$/
+  const copyBase = () => {
+    navigator.clipboard.writeText(BASE_URL)
+    setBaseCopied(true)
+    toast('Base URL copied', 'copy')
+    setTimeout(() => setBaseCopied(false), 2000)
+  }
 
+  const RESOURCE_NAME_RE = /^[a-z0-9][a-z0-9-]*$/
   const validateResourceName = (val) => {
     const v = val.trim().toLowerCase()
-    if (!v)                          return 'Resource name is required'
-    if (v.length < 2)                return 'Name must be at least 2 characters'
-    if (v.length > 40)               return 'Name must be under 40 characters'
-    if (/\s/.test(val))              return 'Spaces not allowed — use hyphens instead (e.g. blog-posts)'
-    if (!RESOURCE_NAME_RE.test(v))   return 'Only lowercase letters, numbers and hyphens allowed'
+    if (!v)                               return 'Resource name is required'
+    if (v.length < 2)                     return 'Name must be at least 2 characters'
+    if (v.length > 40)                    return 'Name must be under 40 characters'
+    if (/\s/.test(val))                   return 'Spaces not allowed — use hyphens instead'
+    if (!RESOURCE_NAME_RE.test(v))        return 'Only lowercase letters, numbers and hyphens'
     if (resources.some(r => r.name === v)) return `"${v}" already exists in this project`
     return ''
   }
@@ -63,12 +81,10 @@ export default function ProjectDetail() {
     if (nameTouched) setNameError(validateResourceName(e.target.value))
   }
 
-  // closeModal MUST be declared before the Esc useEffect that references it
   const closeModal = useCallback(() => {
     setShowModal(false); setNewName(''); setNameError(''); setNameTouched(false)
   }, [])
 
-  // Esc closes New Resource modal
   useEffect(() => {
     if (!showModal) return
     const handler = (e) => { if (e.key === 'Escape') closeModal() }
@@ -76,39 +92,25 @@ export default function ProjectDetail() {
     return () => window.removeEventListener('keydown', handler)
   }, [showModal, closeModal])
 
-  // ── Create resource ───────────────────────────────────────────────────────
   const createResource = async () => {
     setNameTouched(true)
     const err = validateResourceName(newName)
     if (err) { setNameError(err); return }
     setCreating(true)
     try {
-      await api.post(`/projects/${slug}/resources`, {
-        name:   newName.toLowerCase().trim(),
-        schema: []
-      })
+      await api.post(`/projects/${slug}/resources`, { name: newName.toLowerCase().trim(), schema: [] })
       toast(`Resource "${newName.toLowerCase().trim()}" created`, 'success')
-      closeModal()
-      fetchData()
+      closeModal(); fetchData()
     } catch (err) {
       const msg = err.response?.data?.message || ''
       if (msg.toLowerCase().includes('exists') || msg.toLowerCase().includes('duplicate')) {
-        setNameError(`"${newName.toLowerCase().trim()}" already exists. Choose a different name.`)
-      } else {
-        toast(msg || 'Failed to create resource', 'error')
-      }
-    } finally {
-      setCreating(false)
-    }
+        setNameError(`"${newName.toLowerCase().trim()}" already exists.`)
+      } else { toast(msg || 'Failed to create resource', 'error') }
+    } finally { setCreating(false) }
   }
 
-  // ── Delete resource — opens confirm modal ─────────────────────────────────
-  const handleDeleteClick = (resource) => {
-    setResourceToDelete(resource)
-    setConfirmOpen(true)
-  }
+  const handleDeleteClick = (r) => { setResourceToDelete(r); setConfirmOpen(true) }
 
-  // ── Actual delete after confirmation ──────────────────────────────────────
   const handleDeleteConfirm = async () => {
     if (!resourceToDelete) return
     setDeleting(true)
@@ -116,237 +118,134 @@ export default function ProjectDetail() {
       await api.delete(`/projects/${slug}/resources/${resourceToDelete.name}`)
       toast(`"${resourceToDelete.name}" deleted`, 'success')
       setResources(p => p.filter(r => r.name !== resourceToDelete.name))
-      setConfirmOpen(false)
-      setResourceToDelete(null)
-    } catch {
-      toast('Failed to delete resource', 'error')
-    } finally {
-      setDeleting(false)
-    }
+      setConfirmOpen(false); setResourceToDelete(null)
+    } catch { toast('Failed to delete resource', 'error') }
+    finally { setDeleting(false) }
   }
 
-  // ── Copy base URL ─────────────────────────────────────────────────────────
-  const copyBase = () => {
-    navigator.clipboard.writeText(BASE_URL)
-    toast('Base URL copied', 'copy')
-  }
-
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white">
+    <div className="page-enter" style={{ minHeight:'100vh', background:C.bg, color:C.fg, fontFamily:"'DM Sans', sans-serif" }}>
+      <style>{FONTS}{ANIM}{`
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+        input::placeholder{color:#475569}
+        .row-hover:hover{background:rgba(255,255,255,0.02)}
+        .action-btn{display:inline-flex;align-items:center;padding:0.25rem 0.6rem;border-radius:8px;border:1px solid ${C.border};background:transparent;color:${C.muted};font-size:11px;cursor:pointer;transition:color 150ms,border-color 150ms;font-family:'DM Sans',sans-serif;text-decoration:none}
+        .action-btn:hover{color:${C.fg};border-color:${C.muted}}
+        .del-btn{display:inline-flex;align-items:center;padding:0.25rem 0.5rem;border-radius:8px;background:transparent;border:none;color:rgba(255,255,255,0.2);font-size:13px;cursor:pointer;transition:color 150ms,background 150ms}
+        .del-btn:hover{color:${C.red};background:rgba(239,68,68,0.08)}
+      `}</style>
 
-      {/* Header */}
-      <div className="border-b border-white/10 px-6 py-4">
-        <div className="flex items-center justify-between max-w-5xl mx-auto">
-          <nav className="flex items-center gap-2 text-sm text-white/40 font-mono">
-            <Link to="/dashboard" className="hover:text-white transition-colors">Dashboard</Link>
-            <span>/</span>
-            <span className="text-white">{slug}</span>
-          </nav>
-          <button
-            onClick={() => setShowModal(true)}
-            className="text-xs px-4 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500
-              text-white font-medium transition-colors"
-          >
-            + New Resource
-          </button>
+      {/* NAVBAR */}
+      <nav className="pd-nav" style={{ borderBottom:`1px solid ${C.border}`, padding:'0 clamp(1.5rem,5vw,3rem)', height:60, display:'flex', alignItems:'center' }}>
+        <div style={{ maxWidth:1100, margin:'0 auto', width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          <div className="pd-nav-left" style={{ display:'flex', alignItems:'center', gap:8, fontFamily:"'DM Mono',monospace", fontSize:13, color:C.muted }}>
+            <Link to="/dashboard" style={{ color:C.muted, textDecoration:'none', transition:'color 150ms' }} onMouseEnter={e=>e.target.style.color=C.fg} onMouseLeave={e=>e.target.style.color=C.muted}>Dashboard</Link>
+            <span className="pd-breadcrumb-mid" style={{ color:'#475569' }}>/</span>
+            <span style={{ color:C.fg }}>{slug}</span>
+          </div>
+          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+            {project?.isPublic && (
+              <Link to={`/demo/${slug}`} target="_blank" style={{ fontSize:11, padding:'0.3rem 0.7rem', borderRadius:8, border:'1px solid rgba(34,197,94,0.25)', background:'rgba(34,197,94,0.08)', color:C.accent, textDecoration:'none', fontFamily:"'Space Grotesk',sans-serif", fontWeight:500 }}>↗ Demo</Link>
+            )}
+            <button onClick={()=>setShowModal(true)} aria-label="New Resource" style={{ fontSize:13, padding:'0.4rem 1rem', borderRadius:8, background:C.accent, color:'#0F172A', fontFamily:"'Space Grotesk',sans-serif", fontWeight:600, border:'none', cursor:'pointer', transition:'background 150ms' }} onMouseEnter={e=>e.currentTarget.style.background=C.accentDim} onMouseLeave={e=>e.currentTarget.style.background=C.accent}>
+              + <span className="pd-new-res-txt">New Resource</span><span style={{display:'none'}} className="pd-new-res-sm">New</span>
+            </button>
+          </div>
         </div>
-      </div>
+      </nav>
 
-      <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
+      <div style={{ maxWidth:1100, margin:'0 auto', padding:'2rem clamp(1.5rem,5vw,3rem)' }}>
 
         {/* Project meta */}
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="font-mono text-xs px-2.5 py-1 rounded-full border border-white/10 bg-white/5 text-white/50">
-            /{slug}
-          </span>
+        <div className="pd-base-row" style={{ display:'flex', flexWrap:'wrap', alignItems:'center', gap:10, marginBottom:28 }}>
+          <span style={{ fontFamily:"'DM Mono',monospace", fontSize:12, padding:'0.25rem 0.65rem', borderRadius:100, border:`1px solid ${C.border}`, background:'rgba(255,255,255,0.03)', color:C.muted }}>/{slug}</span>
           {project?.isPublic && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 text-emerald-400">
-              Public
-            </span>
+            <span style={{ fontSize:10, padding:'0.2rem 0.6rem', borderRadius:100, border:'1px solid rgba(34,197,94,0.25)', background:'rgba(34,197,94,0.08)', color:C.accent, fontFamily:"'Space Grotesk',sans-serif", fontWeight:500 }}>Public</span>
           )}
-          {/* Base URL */}
-          <button
-            onClick={copyBase}
-            className="ml-auto flex items-center gap-2 font-mono text-[11px] px-3 py-1.5
-              rounded-lg bg-white/[0.03] border border-white/10 text-white/40
-              hover:text-white hover:border-white/20 transition-colors"
-          >
-            <span className="truncate max-w-[240px]">{BASE_URL}</span>
+          <button onClick={copyBase} className="pd-base-btn" style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:8, fontFamily:"'DM Mono',monospace", fontSize:11, padding:'0.4rem 0.85rem', borderRadius:8, background:'rgba(255,255,255,0.02)', border:`1px solid ${C.border}`, color:baseCopied?C.accent:C.muted, cursor:'pointer', transition:'color 150ms', maxWidth:320 }}>
+            <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:240 }}>{BASE_URL}</span>
             <span>⎘</span>
           </button>
         </div>
 
         {/* Resources table */}
-        <div>
-          <h2 className="text-sm font-semibold text-white/60 uppercase tracking-wider mb-3">
-            Resources
-          </h2>
-          <div className="rounded-xl border border-white/10 overflow-hidden">
-            {/* Table head */}
-            <div className="flex items-center gap-4 px-4 py-2.5 bg-white/[0.03] border-b border-white/[0.06]">
-              <span className="text-[11px] font-medium text-white/30 w-36">Name</span>
-              <span className="text-[11px] font-medium text-white/30 flex-1">Endpoint</span>
-              <span className="text-[11px] font-medium text-white/30 w-16 text-center">Fields</span>
-              <span className="text-[11px] font-medium text-white/30 w-28 text-right">Actions</span>
+        <div style={{ marginBottom:32 }}>
+          <div style={{ fontSize:11, fontWeight:600, color:C.muted, letterSpacing:'0.08em', textTransform:'uppercase', fontFamily:"'Space Grotesk',sans-serif", marginBottom:12 }}>Resources</div>
+          <div style={{ border:`1px solid ${C.border}`, borderRadius:12, overflow:'hidden' }}><div style={{ overflowX:'auto' }}>
+            {/* Head */}
+            <div style={{ display:'flex', alignItems:'center', gap:16, padding:'0.6rem 1rem', background:'rgba(255,255,255,0.02)', borderBottom:`1px solid ${C.border}`, minWidth:520 }}>
+              {['Name','Endpoint','Fields','Actions'].map((h,i)=>(
+                <span key={h} style={{ fontSize:11, fontWeight:500, color:'rgba(255,255,255,0.3)', width:i===0?144:i===2?64:i===3?112:'auto', flex:i===1?1:undefined, textAlign:i===2||i===3?'center':undefined, fontFamily:"'Space Grotesk',sans-serif" }}>{h}</span>
+              ))}
             </div>
 
             {loading ? (
-              Array.from({ length: 3 }).map((_, i) => <TableRowSkeleton key={i} cols={4} />)
+              Array.from({length:3}).map((_,i)=><TableRowSkeleton key={i} cols={4}/>)
             ) : resources.length === 0 ? (
-              <div className="py-14 px-6 flex flex-col items-center text-center">
-                {/* Icon */}
-                <div className="w-14 h-14 rounded-xl border border-white/[0.07] bg-white/[0.02]
-                  flex items-center justify-center mb-4">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6366F1"
-                    strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.7">
-                    <ellipse cx="12" cy="5" rx="9" ry="3"/>
-                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
-                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+              <div style={{ padding:'4rem 2rem', display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center' }}>
+                <div style={{ width:52, height:52, borderRadius:12, border:`1px solid rgba(34,197,94,0.15)`, background:'rgba(34,197,94,0.05)', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:16 }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={C.accent} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.7">
+                    <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
                   </svg>
                 </div>
-                <p className="text-sm font-medium text-white/50 mb-1">No resources yet</p>
-                <p className="text-xs text-white/25 max-w-[260px] mb-5 leading-relaxed">
-                  Resources are your API endpoints — like <span className="font-mono text-white/40">users</span> or <span className="font-mono text-white/40">products</span>. Each gets full CRUD automatically.
-                </p>
-                <button
-                  onClick={() => setShowModal(true)}
-                  className="text-xs px-4 py-2 rounded-lg bg-violet-600/80 hover:bg-violet-600
-                    text-white font-medium transition-colors"
-                >
-                  + Add first resource
-                </button>
+                <p style={{ fontSize:14, fontWeight:500, color:'rgba(255,255,255,0.5)', marginBottom:6, fontFamily:"'Space Grotesk',sans-serif" }}>No resources yet</p>
+                <p style={{ fontSize:12, color:'rgba(255,255,255,0.25)', maxWidth:260, marginBottom:20, lineHeight:1.6 }}>Resources are your API endpoints — like <code style={{fontFamily:"'DM Mono',monospace",color:'rgba(255,255,255,0.4)'}}>users</code> or <code style={{fontFamily:"'DM Mono',monospace",color:'rgba(255,255,255,0.4)'}}>products</code>. Each gets full CRUD automatically.</p>
+                <button onClick={()=>setShowModal(true)} style={{ fontSize:12, padding:'0.5rem 1.25rem', borderRadius:8, background:C.accent, color:'#0F172A', fontFamily:"'Space Grotesk',sans-serif", fontWeight:600, border:'none', cursor:'pointer' }}>+ Add first resource</button>
               </div>
             ) : (
               resources.map(r => (
-                <div key={r.name}
-                  className="flex items-center gap-4 px-4 py-3 border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors last:border-0"
-                >
-                  <span className="w-36 font-mono text-sm text-white truncate">{r.name}</span>
-                  <span className="flex-1 font-mono text-[11px] text-white/30 truncate">
-                    {BASE_URL}/{r.name}
-                  </span>
-                  <span className="w-16 text-center text-xs text-white/40">
-                    {r.schema?.length ?? 0}
-                  </span>
-                  <div className="w-28 flex items-center justify-end gap-1.5">
-                    <Link
-                      to={`/project/${slug}/resource/${r.name}`}
-                      className="text-[11px] px-2.5 py-1 rounded-lg bg-white/5 border border-white/10
-                        text-white/50 hover:text-white hover:border-white/20 transition-colors"
-                    >
-                      Edit
-                    </Link>
-                    <Link
-                      to={`/project/${slug}/resource/${r.name}/endpoints`}
-                      className="text-[11px] px-2.5 py-1 rounded-lg bg-white/5 border border-white/10
-                        text-white/50 hover:text-white hover:border-white/20 transition-colors"
-                    >
-                      Endpoints
-                    </Link>
-                    <button
-                      onClick={() => handleDeleteClick(r)}
-                      className="text-[11px] px-2 py-1 rounded-lg text-white/20
-                        hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                    >
-                      ✕
-                    </button>
+                <div key={r.name} className="row-hover" style={{ display:'flex', alignItems:'center', gap:16, padding:'0.75rem 1rem', borderBottom:`1px solid rgba(255,255,255,0.04)`, transition:'background 150ms', minWidth:520 }}>
+                  <span style={{ width:144, fontFamily:"'DM Mono',monospace", fontSize:13, color:C.fg, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{r.name}</span>
+                  <span style={{ flex:1, fontFamily:"'DM Mono',monospace", fontSize:11, color:'rgba(255,255,255,0.3)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{BASE_URL}/{r.name}</span>
+                  <span style={{ width:64, textAlign:'center', fontSize:12, color:'rgba(255,255,255,0.4)' }}>{r.schema?.length ?? 0}</span>
+                  <div style={{ width:112, display:'flex', alignItems:'center', justifyContent:'flex-end', gap:6 }}>
+                    <Link to={`/project/${slug}/resource/${r.name}`} className="action-btn">Edit</Link>
+                    <Link to={`/project/${slug}/resource/${r.name}/endpoints`} className="action-btn">Endpoints</Link>
+                    <button onClick={()=>handleDeleteClick(r)} className="del-btn">✕</button>
                   </div>
                 </div>
               ))
             )}
           </div>
+          </div>
         </div>
 
-        {/* Request Logs panel */}
+        {/* Request Logs */}
         <div>
-          <h2 className="text-sm font-semibold text-white/60 uppercase tracking-wider mb-3">
-            Request Logs
-          </h2>
+          <div style={{ fontSize:11, fontWeight:600, color:C.muted, letterSpacing:'0.08em', textTransform:'uppercase', fontFamily:"'Space Grotesk',sans-serif", marginBottom:12 }}>Request Logs</div>
           <RequestLogsPanel projectSlug={slug} />
         </div>
       </div>
 
-      {/* Create Resource modal */}
+      {/* Create Resource Modal */}
       {showModal && (
-        <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          onClick={e => { if (e.target === e.currentTarget) closeModal() }}
-        >
-          <div className="w-full max-w-sm rounded-2xl border border-white/15 bg-[#111118] p-6 shadow-2xl space-y-4">
-            <div>
-              <h3 className="text-base font-semibold">New Resource</h3>
-              <p className="text-xs text-white/30 mt-0.5">Lowercase letters, numbers, hyphens only</p>
+        <div onClick={e=>{if(e.target===e.currentTarget)closeModal()}} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.65)', backdropFilter:'blur(6px)', zIndex:50, display:'flex', alignItems:'center', justifyContent:'center', padding:'1rem' }}>
+          <div style={{ width:'100%', maxWidth:380, background:C.surface, border:`1px solid ${C.border}`, borderRadius:16, padding:'1.5rem', boxShadow:'0 24px 60px rgba(0,0,0,0.5)' }}>
+            <h3 style={{ fontFamily:"'Space Grotesk',sans-serif", fontSize:15, fontWeight:600, color:C.fg, marginBottom:4 }}>New Resource</h3>
+            <p style={{ fontSize:12, color:C.muted, marginBottom:16 }}>Lowercase letters, numbers, hyphens only</p>
+            <div style={{ marginBottom:16 }}>
+              <input autoFocus type="text" placeholder="e.g. users, products, blog-posts" value={newName} onChange={handleNameChange}
+                onBlur={()=>{setNameTouched(true);setNameError(validateResourceName(newName))}}
+                onKeyDown={e=>e.key==='Enter'&&createResource()}
+                style={{ width:'100%', background:nameError&&nameTouched?'rgba(239,68,68,0.05)':'rgba(0,0,0,0.3)', border:`1px solid ${nameError&&nameTouched?'rgba(239,68,68,0.5)':C.border}`, borderRadius:10, padding:'0.65rem 1rem', fontFamily:"'DM Mono',monospace", fontSize:13, color:C.fg, outline:'none', boxSizing:'border-box' }}/>
+              {nameError && nameTouched && <p style={{ marginTop:6, fontSize:11, color:C.red, display:'flex', alignItems:'center', gap:4 }}><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10" opacity="0.2"/><line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/><circle cx="12" cy="16" r="1.2"/></svg>{nameError}</p>}
+              {newName.trim() && !nameError && <p style={{ marginTop:6, fontSize:11, fontFamily:"'DM Mono',monospace", color:'rgba(255,255,255,0.25)' }}>endpoint: <span style={{color:C.accent}}>/api/{slug}/{newName.toLowerCase().trim()}</span></p>}
             </div>
-            <div>
-              <input
-                autoFocus
-                type="text"
-                placeholder="e.g. users, products, blog-posts"
-                value={newName}
-                onChange={handleNameChange}
-                onBlur={() => { setNameTouched(true); setNameError(validateResourceName(newName)) }}
-                onKeyDown={e => e.key === 'Enter' && createResource()}
-                className={`w-full bg-black/40 border rounded-xl px-4 py-2.5 font-mono
-                  text-sm text-white placeholder-white/20
-                  focus:outline-none transition-colors
-                  ${nameError && nameTouched
-                    ? 'border-red-500/50 focus:border-red-500/60'
-                    : 'border-white/10 focus:border-violet-500/50'}`}
-              />
-              {nameError && nameTouched && (
-                <p className="mt-1.5 text-[11px] text-red-400 flex items-center gap-1">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
-                    <circle cx="12" cy="12" r="10" opacity="0.2"/>
-                    <line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
-                    <circle cx="12" cy="16" r="1.2"/>
-                  </svg>
-                  {nameError}
-                </p>
-              )}
-              {/* Live preview of normalized name */}
-              {newName.trim() && !nameError && (
-                <p className="mt-1.5 text-[11px] font-mono text-white/25">
-                  endpoint: <span className="text-violet-400">
-                    /api/{slug}/{newName.toLowerCase().trim()}
-                  </span>
-                </p>
-              )}
-            </div>
-            <div className="flex gap-3 pt-1">
-              <button
-                onClick={closeModal}
-                className="flex-1 py-2 rounded-xl border border-white/10 text-sm text-white/40
-                  hover:text-white hover:border-white/20 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={createResource}
-                disabled={creating}
-                className="flex-1 py-2 rounded-xl bg-violet-600 hover:bg-violet-500
-                  text-sm text-white font-medium transition-colors
-                  disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {creating ? 'Creating…' : 'Create'}
-              </button>
+            <div style={{ display:'flex', gap:10 }}>
+              <button onClick={closeModal} style={{ flex:1, padding:'0.6rem', borderRadius:10, border:`1px solid ${C.border}`, background:'transparent', fontSize:13, color:C.muted, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }} onMouseEnter={e=>{e.currentTarget.style.color=C.fg;e.currentTarget.style.borderColor=C.muted}} onMouseLeave={e=>{e.currentTarget.style.color=C.muted;e.currentTarget.style.borderColor=C.border}}>Cancel</button>
+              <button onClick={createResource} disabled={creating} style={{ flex:1, padding:'0.6rem', borderRadius:10, background:creating?C.accentDim:C.accent, color:'#0F172A', fontSize:13, fontFamily:"'Space Grotesk',sans-serif", fontWeight:600, border:'none', cursor:creating?'not-allowed':'pointer', opacity:creating?0.7:1 }}>{creating?'Creating…':'Create'}</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Delete Resource Confirmation Modal */}
       <ConfirmModal
         isOpen={confirmOpen}
-        onClose={() => { if (!deleting) { setConfirmOpen(false); setResourceToDelete(null) } }}
+        onClose={()=>{if(!deleting){setConfirmOpen(false);setResourceToDelete(null)}}}
         onConfirm={handleDeleteConfirm}
         loading={deleting}
         title="Delete resource?"
-        message={
-          resourceToDelete
-            ? <>All data stored in <span className="text-white font-medium">"{resourceToDelete.name}"</span> will be permanently deleted. This cannot be undone.</>
-            : 'This action cannot be undone.'
-        }
+        message={resourceToDelete?<>All data in <span style={{color:C.fg,fontWeight:500}}>"{resourceToDelete.name}"</span> will be permanently deleted.</>:'This action cannot be undone.'}
         confirmLabel="Delete Resource"
         variant="danger"
       />

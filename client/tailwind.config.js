@@ -4,7 +4,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        accent:          '#22d3ee',
+        accent:          '#22C55E',
         border:          '#151823',
         'bg-primary':    '#050608',
         'bg-card':       '#0a0c14',
@@ -15,7 +15,7 @@ export default {
       },
       fontFamily: {
         sans:    ['DM Sans', 'system-ui', 'sans-serif'],
-        display: ['Syne', 'sans-serif'],
+        display: ['Space Grotesk', 'sans-serif'],
         mono:    ['DM Mono', 'monospace'],
       },
       animation: {

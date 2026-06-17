@@ -1,46 +1,31 @@
-/**
- * ShareableDemo.jsx — /demo/:slug
- *
- * Public page — no auth needed.
- * Shows live data from the public API + auto-generated docs.
- * Share this link with clients: mockapi.spacego.online/demo/my-project
- *
- * Route to add in App.jsx:
- *   <Route path="/demo/:slug" element={<ShareableDemo />} />
- */
-
 import { useState, useEffect } from 'react'
 import { useParams, Link }     from 'react-router-dom'
 
-const METHOD_STYLE = {
-  GET:    'text-emerald-400 bg-emerald-400/10 border-emerald-400/25',
-  POST:   'text-blue-400   bg-blue-400/10   border-blue-400/25',
-  PUT:    'text-amber-400  bg-amber-400/10  border-amber-400/25',
-  DELETE: 'text-red-400    bg-red-400/10    border-red-400/25'
+const C = { bg:"#0F172A",surface:"#1E293B",surface2:"#272F42",border:"#334155",fg:"#F8FAFC",muted:"#94A3B8",accent:"#22C55E",accentDim:"#16A34A",red:"#EF4444",yellow:"#FBBF24",blue:"#60A5FA" }
+const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500&family=DM+Mono:wght@400;500&display=swap');`
+const ANIM  = `@keyframes pageIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}.page-enter{animation:pageIn 0.35s ease forwards} @keyframes spin{to{transform:rotate(360deg)}} .spinner{animation:spin 0.8s linear infinite} @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}} .pulse{animation:pulse 2s infinite}`
+
+const METHOD_COLOR = {
+  GET:    { text:'#22C55E', bg:'rgba(34,197,94,0.1)',  border:'rgba(34,197,94,0.25)'  },
+  POST:   { text:'#60A5FA', bg:'rgba(96,165,250,0.1)', border:'rgba(96,165,250,0.25)' },
+  PUT:    { text:'#FBBF24', bg:'rgba(251,191,36,0.1)', border:'rgba(251,191,36,0.25)' },
+  DELETE: { text:'#EF4444', bg:'rgba(239,68,68,0.1)',  border:'rgba(239,68,68,0.25)'  },
 }
 
 const BASE_ENDPOINTS = (baseUrl, name) => [
-  { method: 'GET',    url: `${baseUrl}/${name}`,     description: 'List all (page, limit, sort, filter)' },
-  { method: 'GET',    url: `${baseUrl}/${name}/:id`, description: 'Get by ID' },
-  { method: 'POST',   url: `${baseUrl}/${name}`,     description: 'Create new record' },
-  { method: 'PUT',    url: `${baseUrl}/${name}/:id`, description: 'Update by ID' },
-  { method: 'DELETE', url: `${baseUrl}/${name}/:id`, description: 'Delete by ID' }
+  { method:'GET',    url:`${baseUrl}/${name}`,     description:'List all (page, limit, sort, filter)' },
+  { method:'GET',    url:`${baseUrl}/${name}/:id`, description:'Get by ID' },
+  { method:'POST',   url:`${baseUrl}/${name}`,     description:'Create new record' },
+  { method:'PUT',    url:`${baseUrl}/${name}/:id`, description:'Update by ID' },
+  { method:'DELETE', url:`${baseUrl}/${name}/:id`, description:'Delete by ID' },
 ]
 
-function CopyButton({ text, label = '⎘ Copy' }) {
+function CopyButton({ text, label='⎘ Copy' }) {
   const [copied, setCopied] = useState(false)
-  const copy = () => {
-    navigator.clipboard.writeText(text)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
+  const copy = () => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(()=>setCopied(false),2000) }
   return (
-    <button
-      onClick={copy}
-      className="text-[11px] px-2.5 py-1 rounded-md border border-white/10
-        text-white/40 hover:text-white hover:border-white/20 transition-colors"
-    >
-      {copied ? '✓ Copied' : label}
+    <button onClick={copy} style={{ fontSize:11, padding:'0.25rem 0.65rem', borderRadius:6, border:`1px solid ${C.border}`, background:'transparent', color:copied?C.accent:C.muted, cursor:'pointer', transition:'color 150ms', fontFamily:"'DM Sans',sans-serif", flexShrink:0 }}>
+      {copied?'✓ Copied':label}
     </button>
   )
 }
@@ -51,27 +36,22 @@ function LiveDataPreview({ url }) {
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    setLoading(true)
-    setError(null)
+    setLoading(true); setError(null)
     fetch(`${url}?limit=3`)
-      .then(r => r.json())
-      .then(d => { setData(d); setLoading(false) })
-      .catch(() => { setError('Failed to fetch live data'); setLoading(false) })
+      .then(r=>r.json())
+      .then(d=>{ setData(d); setLoading(false) })
+      .catch(()=>{ setError('Failed to fetch live data'); setLoading(false) })
   }, [url])
 
   if (loading) return (
-    <div className="animate-pulse space-y-2 p-4">
-      {[1,2,3].map(i => <div key={i} className="h-4 bg-white/5 rounded" />)}
+    <div style={{ padding:'1.25rem', display:'flex', flexDirection:'column', gap:8 }}>
+      {[1,2,3].map(i=><div key={i} style={{ height:14, borderRadius:4, background:'rgba(255,255,255,0.05)', animation:'pulse 1.5s ease infinite' }}/>)}
     </div>
   )
-
-  if (error) return (
-    <p className="p-4 text-xs text-red-400/60">{error}</p>
-  )
-
+  if (error) return <p style={{ padding:'1rem', fontSize:12, color:`${C.red}99` }}>{error}</p>
   return (
-    <pre className="p-4 text-[11px] font-mono text-emerald-300/70 overflow-x-auto whitespace-pre leading-relaxed max-h-60">
-      {JSON.stringify(data, null, 2)}
+    <pre style={{ padding:'1rem', fontSize:11, fontFamily:"'DM Mono',monospace", color:`${C.accent}bb`, overflowX:'auto', whiteSpace:'pre', lineHeight:1.7, maxHeight:240, overflowY:'auto' }}>
+      {JSON.stringify(data,null,2)}
     </pre>
   )
 }
@@ -79,208 +59,165 @@ function LiveDataPreview({ url }) {
 export default function ShareableDemo() {
   const { slug } = useParams()
 
-  const [resources, setResources] = useState([])
-  const [loading, setLoading]     = useState(true)
-  const [error, setError]         = useState(null)
+  const [resources, setResources]   = useState([])
+  const [loading, setLoading]       = useState(true)
+  const [error, setError]           = useState(null)
   const [activeResource, setActiveResource] = useState(null)
-  const [copied, setCopied]       = useState(false)
+  const [copied, setCopied]         = useState(false)
 
   const BASE_URL = `${window.location.origin}/api/${slug}`
   const DEMO_URL = `${window.location.origin}/demo/${slug}`
 
   useEffect(() => {
-    // Public endpoint — no auth token
     fetch(`${window.location.origin}/api/projects`)
-      .then(r => { if (!r.ok) throw new Error(); return r.json() })
-      .then(d => {
-        const project = d.data?.find(p => p.slug === slug)
-        if (!project?.isPublic) {
-          setError('This project is private or does not exist.')
-          setLoading(false)
-          return
-        }
-        // Fetch resources (public projects only)
+      .then(r=>{ if(!r.ok) throw new Error(); return r.json() })
+      .then(d=>{
+        const project = d.data?.find(p=>p.slug===slug)
+        if (!project?.isPublic) { setError('This project is private or does not exist.'); setLoading(false); return }
         return fetch(`${window.location.origin}/api/projects/${slug}/resources`)
       })
-      .then(r => r?.json())
-      .then(d => {
+      .then(r=>r?.json())
+      .then(d=>{
         if (!d) return
         const list = d.data || []
         setResources(list)
-        if (list.length > 0) setActiveResource(list[0].name)
+        if (list.length>0) setActiveResource(list[0].name)
         setLoading(false)
       })
-      .catch(() => {
-        setError('Could not load project. Make sure it exists and is set to Public.')
-        setLoading(false)
-      })
+      .catch(()=>{ setError('Could not load project. Make sure it exists and is set to Public.'); setLoading(false) })
   }, [slug])
 
-  const copyDemoLink = () => {
-    navigator.clipboard.writeText(DEMO_URL)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
+  const copyDemoLink = () => { navigator.clipboard.writeText(DEMO_URL); setCopied(true); setTimeout(()=>setCopied(false),2000) }
 
-  // ── Loading ───────────────────────────────────────────────────────────────
   if (loading) return (
-    <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
-      <div className="text-center space-y-3">
-        <div className="w-6 h-6 border-2 border-violet-500/40 border-t-violet-500 rounded-full animate-spin mx-auto" />
-        <p className="text-sm text-white/30">Loading demo…</p>
+    <div style={{ minHeight:'100vh', background:C.bg, display:'flex', alignItems:'center', justifyContent:'center' }}>
+      <style>{FONTS}{ANIM}</style>
+      <div style={{ textAlign:'center' }}>
+        <div className="spinner" style={{ width:22, height:22, border:`2px solid rgba(34,197,94,0.2)`, borderTop:`2px solid ${C.accent}`, borderRadius:'50%', margin:'0 auto 12px' }}/>
+        <p style={{ fontSize:13, color:'rgba(255,255,255,0.3)', fontFamily:"'DM Sans',sans-serif" }}>Loading demo…</p>
       </div>
     </div>
   )
 
-  // ── Error ─────────────────────────────────────────────────────────────────
   if (error) return (
-    <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-6">
-      <div className="text-center space-y-4 max-w-sm">
-        <p className="text-3xl">🔒</p>
-        <p className="text-white/60 text-sm">{error}</p>
-        <Link to="/" className="text-xs text-violet-400 hover:text-violet-300 transition-colors">
-          ← Back to MockAPI
-        </Link>
+    <div style={{ minHeight:'100vh', background:C.bg, display:'flex', alignItems:'center', justifyContent:'center', padding:'1.5rem' }}>
+      <style>{FONTS}{ANIM}</style>
+      <div style={{ textAlign:'center', maxWidth:320 }}>
+        <p style={{ fontSize:32, marginBottom:16 }}>🔒</p>
+        <p style={{ fontSize:14, color:'rgba(255,255,255,0.5)', marginBottom:20, fontFamily:"'DM Sans',sans-serif", lineHeight:1.6 }}>{error}</p>
+        <Link to="/" style={{ fontSize:12, color:C.accent, textDecoration:'none', fontFamily:"'DM Sans',sans-serif" }}>← Back to MockAPI</Link>
       </div>
     </div>
   )
 
-  const activeRes = resources.find(r => r.name === activeResource)
+  const activeRes = resources.find(r=>r.name===activeResource)
   const endpoints = activeRes ? BASE_ENDPOINTS(BASE_URL, activeRes.name) : []
 
-  // ── Main ──────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white">
+    <div className="page-enter" style={{ minHeight:'100vh', background:C.bg, color:C.fg, fontFamily:"'DM Sans',sans-serif" }}>
+      <style>{FONTS}{ANIM}{`*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}`}</style>
 
-      {/* Header */}
-      <div className="border-b border-white/10 px-6 py-4 bg-black/20">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link to="/" className="font-mono font-bold text-white/70 hover:text-white transition-colors text-sm">
-              MockAPI
-            </Link>
-            <span className="text-white/20">/</span>
-            <span className="font-mono text-sm text-white">{slug}</span>
-            <span className="text-[10px] px-2 py-0.5 rounded-full border border-emerald-500/25
-              bg-emerald-500/10 text-emerald-400">
-              Public
-            </span>
+      {/* HEADER */}
+      <div style={{ borderBottom:`1px solid ${C.border}`, padding:'0 clamp(1.5rem,5vw,3rem)', height:60, display:'flex', alignItems:'center', background:'rgba(0,0,0,0.2)' }}>
+        <div style={{ maxWidth:1000, margin:'0 auto', width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+            <div style={{ display:'flex', alignItems:'center', gap: 8 }}>
+              <div style={{ width:26, height:26, background:C.accent, borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#0F172A" strokeWidth="2" strokeLinecap="round">
+                  <rect x="1" y="4" width="14" height="10" rx="2"/><path d="M4 4V3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v1"/><path d="M6 9l2 2 2-2"/>
+                </svg>
+              </div>
+              <Link to="/" style={{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:700, fontSize:14, color:'rgba(255,255,255,0.7)', textDecoration:'none' }}>MockAPI</Link>
+            </div>
+            <span style={{color:'rgba(255,255,255,0.2)' }}>/</span>
+            <span style={{ fontFamily:"'DM Mono',monospace", fontSize:13, color:C.fg }}>{slug}</span>
+            <span style={{ fontSize:10, padding:'0.2rem 0.6rem', borderRadius:100, border:'1px solid rgba(34,197,94,0.25)', background:'rgba(34,197,94,0.08)', color:C.accent, fontFamily:"'Space Grotesk',sans-serif", fontWeight:500 }}>Public</span>
           </div>
-          <button
-            onClick={copyDemoLink}
-            className="flex items-center gap-2 text-[11px] px-3 py-1.5 rounded-lg border border-white/10
-              text-white/40 hover:text-white hover:border-white/20 transition-colors"
-          >
-            🔗 {copied ? 'Copied!' : 'Share Demo'}
+          <button onClick={copyDemoLink} style={{ display:'flex', alignItems:'center', gap:8, fontSize:11, padding:'0.35rem 0.85rem', borderRadius:8, border:`1px solid ${C.border}`, background:'transparent', color:copied?C.accent:C.muted, cursor:'pointer', transition:'color 150ms,border-color 150ms', fontFamily:"'DM Sans',sans-serif" }}>
+            🔗 {copied?'Copied!':'Share Demo'}
           </button>
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
+      <div style={{ maxWidth:1000, margin:'0 auto', padding:'2rem clamp(1.5rem,5vw,3rem)', display:'flex', flexDirection:'column', gap:24 }}>
 
         {/* Base URL */}
-        <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/[0.07] bg-white/[0.02]">
-          <span className="text-[10px] font-semibold text-white/30 uppercase tracking-wider shrink-0">Base URL</span>
-          <span className="font-mono text-sm text-white/60 flex-1 truncate">{BASE_URL}</span>
-          <CopyButton text={BASE_URL} />
+        <div style={{ display:'flex', alignItems:'center', gap:12, padding:'0.75rem 1rem', borderRadius:10, border:`1px solid ${C.border}`, background:'rgba(255,255,255,0.02)' }}>
+          <span style={{ fontSize:10, fontWeight:600, color:'rgba(255,255,255,0.3)', textTransform:'uppercase', letterSpacing:'0.08em', flexShrink:0, fontFamily:"'Space Grotesk',sans-serif" }}>Base URL</span>
+          <span style={{ fontFamily:"'DM Mono',monospace", fontSize:13, color:'rgba(255,255,255,0.6)', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{BASE_URL}</span>
+          <CopyButton text={BASE_URL}/>
         </div>
 
         {/* Resource tabs */}
-        {resources.length > 1 && (
-          <div className="flex gap-1 p-1 rounded-xl bg-white/[0.03] border border-white/[0.06] w-fit flex-wrap">
-            {resources.map(r => (
-              <button
-                key={r.name}
-                onClick={() => setActiveResource(r.name)}
-                className={`text-xs px-4 py-1.5 rounded-lg font-mono transition-colors ${
-                  activeResource === r.name
-                    ? 'bg-white/10 text-white'
-                    : 'text-white/30 hover:text-white/60'
-                }`}
-              >
-                {r.name}
-              </button>
+        {resources.length>1 && (
+          <div style={{ display:'flex', flexWrap:'wrap', gap:4, padding:'0.25rem', borderRadius:10, background:'rgba(255,255,255,0.03)', border:`1px solid rgba(255,255,255,0.06)`, width:'fit-content' }}>
+            {resources.map(r=>(
+              <button key={r.name} onClick={()=>setActiveResource(r.name)} style={{ fontSize:12, padding:'0.35rem 1rem', borderRadius:8, fontFamily:"'DM Mono',monospace", background:activeResource===r.name?'rgba(255,255,255,0.1)':'transparent', color:activeResource===r.name?C.fg:'rgba(255,255,255,0.3)', border:'none', cursor:'pointer', transition:'all 150ms' }}>{r.name}</button>
             ))}
           </div>
         )}
 
         {activeRes && (
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6">
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 320px', gap:24, alignItems:'start' }}>
 
-            {/* Endpoints */}
-            <div className="space-y-4">
-              <h2 className="text-sm font-semibold text-white/50 uppercase tracking-wider">
-                Endpoints — {activeRes.name}
-              </h2>
-              <div className="rounded-xl border border-white/[0.07] overflow-hidden divide-y divide-white/[0.04]">
-                {endpoints.map((ep, i) => (
-                  <div key={i} className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02] transition-colors">
-                    <span className={`shrink-0 px-2 py-0.5 rounded border text-[11px] font-bold w-16 text-center ${METHOD_STYLE[ep.method]}`}>
-                      {ep.method}
-                    </span>
-                    <span className="flex-1 font-mono text-[12px] text-white/55 truncate">{ep.url}</span>
-                    <span className="text-[11px] text-white/25 hidden sm:block truncate max-w-[180px]">{ep.description}</span>
-                    <CopyButton text={ep.url} />
-                  </div>
-                ))}
+            {/* Endpoints + Schema */}
+            <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+              <div style={{ fontSize:11, fontWeight:600, color:'rgba(255,255,255,0.5)', textTransform:'uppercase', letterSpacing:'0.08em', fontFamily:"'Space Grotesk',sans-serif" }}>Endpoints — {activeRes.name}</div>
+
+              <div style={{ border:`1px solid ${C.border}`, borderRadius:10, overflow:'hidden' }}>
+                {endpoints.map((ep,i)=>{
+                  const mc = METHOD_COLOR[ep.method]
+                  return (
+                    <div key={i} style={{ display:'flex', alignItems:'center', gap:12, padding:'0.65rem 1rem', borderBottom:i<endpoints.length-1?`1px solid rgba(255,255,255,0.04)`:'none', transition:'background 150ms' }} onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,0.02)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                      <span style={{ flexShrink:0, padding:'0.15rem 0.4rem', borderRadius:5, border:`1px solid ${mc.border}`, background:mc.bg, color:mc.text, fontSize:11, fontWeight:700, fontFamily:"'DM Mono',monospace", width:56, textAlign:'center' }}>{ep.method}</span>
+                      <span style={{ flex:1, fontFamily:"'DM Mono',monospace", fontSize:12, color:'rgba(255,255,255,0.55)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{ep.url}</span>
+                      <span style={{ fontSize:11, color:'rgba(255,255,255,0.25)', flexShrink:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:180 }}>{ep.description}</span>
+                      <CopyButton text={ep.url}/>
+                    </div>
+                  )
+                })}
               </div>
 
-              {/* Schema */}
-              {activeRes.schema?.length > 0 && (
-                <div className="rounded-xl border border-white/[0.07] overflow-hidden">
-                  <div className="px-4 py-2.5 border-b border-white/[0.06] bg-white/[0.02]">
-                    <span className="text-[11px] font-semibold text-white/40 uppercase tracking-wider">
-                      Schema
-                    </span>
+              {activeRes.schema?.length>0 && (
+                <div style={{ border:`1px solid ${C.border}`, borderRadius:10, overflow:'hidden' }}>
+                  <div style={{ padding:'0.6rem 1rem', borderBottom:`1px solid rgba(255,255,255,0.06)`, background:'rgba(255,255,255,0.02)' }}>
+                    <span style={{ fontSize:11, fontWeight:600, color:'rgba(255,255,255,0.4)', textTransform:'uppercase', letterSpacing:'0.08em', fontFamily:"'Space Grotesk',sans-serif" }}>Schema</span>
                   </div>
-                  <div className="divide-y divide-white/[0.04]">
-                    {activeRes.schema.map((f, i) => (
-                      <div key={i} className="flex items-center gap-3 px-4 py-2">
-                        <span className="font-mono text-sm text-white/70 w-32 truncate">{f.fieldName}</span>
-                        <span className="text-[11px] px-2 py-0.5 rounded border border-violet-500/20
-                          bg-violet-500/10 text-violet-300/70 font-mono">
-                          {f.type}
-                        </span>
-                        {f.required && <span className="text-[10px] text-white/25">required</span>}
-                      </div>
-                    ))}
-                  </div>
+                  {activeRes.schema.map((f,i)=>(
+                    <div key={i} style={{ display:'flex', alignItems:'center', gap:12, padding:'0.55rem 1rem', borderBottom:i<activeRes.schema.length-1?`1px solid rgba(255,255,255,0.04)`:'none' }}>
+                      <span style={{ fontFamily:"'DM Mono',monospace", fontSize:13, color:'rgba(255,255,255,0.7)', width:128, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{f.fieldName}</span>
+                      <span style={{ fontSize:11, padding:'0.15rem 0.5rem', borderRadius:6, border:'1px solid rgba(34,197,94,0.2)', background:'rgba(34,197,94,0.08)', color:`${C.accent}aa`, fontFamily:"'DM Mono',monospace" }}>{f.type}</span>
+                      {f.required && <span style={{ fontSize:10, color:'rgba(255,255,255,0.25)' }}>required</span>}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
 
-            {/* Live data preview */}
-            <div className="space-y-4">
-              <h2 className="text-sm font-semibold text-white/50 uppercase tracking-wider">
-                Live Data
-              </h2>
-              <div className="rounded-xl border border-white/[0.07] bg-black/50 overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.06] bg-white/[0.02]">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-[11px] text-white/40">GET /{activeRes.name}?limit=3</span>
+            {/* Live data */}
+            <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+              <div style={{ fontSize:11, fontWeight:600, color:'rgba(255,255,255,0.5)', textTransform:'uppercase', letterSpacing:'0.08em', fontFamily:"'Space Grotesk',sans-serif" }}>Live Data</div>
+              <div style={{ border:`1px solid ${C.border}`, borderRadius:10, overflow:'hidden', background:'rgba(0,0,0,0.4)' }}>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0.6rem 1rem', borderBottom:`1px solid rgba(255,255,255,0.06)`, background:'rgba(255,255,255,0.02)' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <span className="pulse" style={{ width:7, height:7, borderRadius:'50%', background:C.accent, display:'inline-block' }}/>
+                    <span style={{ fontSize:11, color:'rgba(255,255,255,0.4)', fontFamily:"'DM Mono',monospace" }}>GET /{activeRes.name}?limit=3</span>
                   </div>
                 </div>
-                <LiveDataPreview url={`${BASE_URL}/${activeRes.name}`} key={activeRes.name} />
+                <LiveDataPreview url={`${BASE_URL}/${activeRes.name}`} key={activeRes.name}/>
               </div>
-
-              {/* Powered by */}
-              <div className="text-center pt-2">
-                <p className="text-[10px] text-white/20">
-                  Powered by{' '}
-                  <Link to="/" className="text-violet-400/60 hover:text-violet-400 transition-colors">
-                    MockAPI
-                  </Link>
-                  {' '}· mockapi.spacego.online
+              <div style={{ textAlign:'center', paddingTop:4 }}>
+                <p style={{ fontSize:10, color:'rgba(255,255,255,0.2)', fontFamily:"'DM Sans',sans-serif" }}>
+                  Powered by <Link to="/" style={{ color:`${C.accent}66`, textDecoration:'none' }}>MockAPI</Link> · mockapi.spacego.online
                 </p>
               </div>
             </div>
           </div>
         )}
 
-        {resources.length === 0 && (
-          <div className="py-20 text-center">
-            <p className="text-white/30 text-sm">This project has no resources yet.</p>
+        {resources.length===0 && (
+          <div style={{ padding:'5rem 2rem', textAlign:'center' }}>
+            <p style={{ fontSize:13, color:'rgba(255,255,255,0.3)', fontFamily:"'DM Sans',sans-serif" }}>This project has no resources yet.</p>
           </div>
         )}
       </div>

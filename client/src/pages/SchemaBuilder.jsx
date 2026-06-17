@@ -1,99 +1,75 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import api from '../lib/axios'
-import { useToast }       from '../context/ToastContext'
+import { useToast }        from '../context/ToastContext'
 import { FieldRowSkeleton } from '../components/Skeleton'
-import ErrorSimConfig     from '../components/ErrorSimConfig'
+import ErrorSimConfig      from '../components/ErrorSimConfig'
 
-const TYPES = ['string', 'number', 'boolean', 'email', 'uuid', 'date', 'avatar', 'enum']
+const C = { bg:"#0F172A",surface:"#1E293B",surface2:"#272F42",border:"#334155",fg:"#F8FAFC",muted:"#94A3B8",accent:"#22C55E",accentDim:"#16A34A",red:"#EF4444",yellow:"#FBBF24",blue:"#60A5FA" }
+const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500&family=DM+Mono:wght@400;500&display=swap');`
+const ANIM  = `@keyframes pageIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}.page-enter{animation:pageIn 0.35s ease forwards}`
 
-const FAKE_DEFAULTS = {
-  string:  'John Doe',
-  number:  499,
-  boolean: true,
-  email:   'user@example.com',
-  uuid:    'a1b2-c3d4-e5f6',
-  date:    '2024-01-15',
-  avatar:  'https://i.pravatar.cc/150',
-  enum:    'option_a'
-}
+const TYPES = ['string','number','boolean','email','uuid','date','avatar','enum']
+const FAKE_DEFAULTS = { string:'John Doe', number:499, boolean:true, email:'user@example.com', uuid:'a1b2-c3d4-e5f6', date:'2024-01-15', avatar:'https://i.pravatar.cc/150', enum:'option_a' }
 
 function buildPreview(fields) {
   const obj = {}
   fields.forEach(f => {
     if (!f.fieldName) return
-    obj[f.fieldName] = f.type === 'enum'
-      ? (f.values?.[0] ?? 'option_a')
-      : FAKE_DEFAULTS[f.type] ?? 'value'
+    obj[f.fieldName] = f.type==='enum' ? (f.values?.[0]??'option_a') : FAKE_DEFAULTS[f.type]??'value'
   })
   return obj
 }
 
 export default function SchemaBuilder() {
   const { slug, name } = useParams()
-  const navigate = useNavigate()
   const { toast } = useToast()
 
-  const [fields, setFields]           = useState([])
-  const [resource, setResource]       = useState(null)
-  const [loading, setLoading]         = useState(true)
-  const [saving, setSaving]           = useState(false)
+  const [fields, setFields]             = useState([])
+  const [resource, setResource]         = useState(null)
+  const [loading, setLoading]           = useState(true)
+  const [saving, setSaving]             = useState(false)
   const [previewCopied, setPreviewCopied] = useState(false)
+  const [dragIdx, setDragIdx]           = useState(null)
+  const [dragOverIdx, setDragOverIdx]   = useState(null)
 
-  // ── Fetch resource ────────────────────────────────────────────────────────
   const fetchResource = useCallback(async () => {
     try {
       const res = await api.get(`/projects/${slug}/resources`)
       const found = res.data.data?.find(r => r.name === name)
       if (found) {
         setResource(found)
-        setFields(
-          found.schema.length > 0
-            ? found.schema
-            : [{ fieldName: '', type: 'string', required: true, values: [] }]
-        )
+        setFields(found.schema.length > 0 ? found.schema : [{ fieldName:'', type:'string', required:true, values:[] }])
       }
-    } catch {
-      toast('Failed to load resource', 'error')
-    } finally {
-      setLoading(false)
-    }
+    } catch { toast('Failed to load resource', 'error') }
+    finally { setLoading(false) }
   }, [slug, name, toast])
 
   useEffect(() => { fetchResource() }, [fetchResource])
 
-  // ── Field helpers ─────────────────────────────────────────────────────────
-  const addField = () =>
-    setFields(p => [...p, { fieldName: '', type: 'string', required: true, values: [] }])
+  const addField    = () => setFields(p => [...p, { fieldName:'', type:'string', required:true, values:[] }])
+  const removeField = (i) => setFields(p => p.filter((_,idx) => idx!==i))
+  const updateField = (i, key, val) => setFields(p => p.map((f,idx) => idx===i ? {...f,[key]:val} : f))
 
-  const removeField = (i) =>
-    setFields(p => p.filter((_, idx) => idx !== i))
+  const isValidFieldName = name => /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(name.trim())
 
-  const updateField = (i, key, val) =>
-    setFields(p => p.map((f, idx) => idx === i ? { ...f, [key]: val } : f))
-
-  // ── Save schema ───────────────────────────────────────────────────────────
   const saveSchema = async () => {
-    if (fields.some(f => !f.fieldName.trim())) {
-      toast('All fields must have a name', 'error')
-      return
+    if (fields.length === 0)                         { toast('Add at least one field', 'error'); return }
+    if (fields.some(f => !f.fieldName.trim()))       { toast('All fields must have a name', 'error'); return }
+    if (fields.some(f => !isValidFieldName(f.fieldName))) {
+      toast('Field names must start with a letter and contain only letters, numbers, _ or $', 'error'); return
     }
-    if (fields.length === 0) {
-      toast('Add at least one field', 'error')
-      return
-    }
+    const names = fields.map(f => f.fieldName.trim())
+    const hasDupe = names.some((n, i) => names.indexOf(n) !== i)
+    if (hasDupe)                                     { toast('Duplicate field names are not allowed', 'error'); return }
     setSaving(true)
     try {
       await api.put(`/projects/${slug}/resources/${name}`, { schema: fields })
       toast('Schema saved ✓', 'success')
-    } catch {
-      toast('Failed to save schema', 'error')
-    } finally {
-      setSaving(false)
-    }
+    } catch { toast('Failed to save schema', 'error') }
+    finally { setSaving(false) }
   }
 
-  // ── Copy preview JSON ─────────────────────────────────────────────────────
   const copyPreview = () => {
     navigator.clipboard.writeText(JSON.stringify(buildPreview(fields), null, 2))
     setPreviewCopied(true)
@@ -103,214 +79,179 @@ export default function SchemaBuilder() {
 
   const preview = buildPreview(fields)
 
-  // ── Render ────────────────────────────────────────────────────────────────
-  return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white">
+  const onDragStart = (e, i) => {
+    setDragIdx(i)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+  const onDragOver = (e, i) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    if (dragOverIdx !== i) setDragOverIdx(i)
+  }
+  const onDrop = (e, i) => {
+    e.preventDefault()
+    if (dragIdx === null || dragIdx === i) { setDragIdx(null); setDragOverIdx(null); return }
+    const arr = [...fields]
+    const [moved] = arr.splice(dragIdx, 1)
+    arr.splice(i, 0, moved)
+    setFields(arr)
+    setDragIdx(null)
+    setDragOverIdx(null)
+  }
+  const onDragEnd = () => { setDragIdx(null); setDragOverIdx(null) }
 
-      {/* Breadcrumb header */}
-      <div className="border-b border-white/10 px-6 py-4">
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
-          <nav className="flex items-center gap-2 text-sm text-white/40 font-mono">
-            <Link to="/dashboard" className="hover:text-white transition-colors">Dashboard</Link>
-            <span>/</span>
-            <Link to={`/project/${slug}`} className="hover:text-white transition-colors">{slug}</Link>
-            <span>/</span>
-            <span className="text-white">{name}</span>
+  const inputBase = { background:'rgba(0,0,0,0.4)', border:`1px solid ${C.border}`, borderRadius:8, padding:'0.5rem 0.75rem', fontSize:13, color:C.fg, fontFamily:"'DM Mono',monospace", outline:'none', transition:'border-color 150ms', boxSizing:'border-box' }
+  const selectBase = { ...inputBase, cursor:'pointer', fontSize:12, color:C.muted }
+
+  return (
+    <div className="page-enter" style={{ minHeight:'100vh', background:C.bg, color:C.fg, fontFamily:"'DM Sans',sans-serif", overflowX:'hidden', maxWidth:'100vw' }}>
+      <style>{FONTS}{ANIM}{`*,*::before,*::after{box-sizing:border-box;margin:0;padding:0} input::placeholder,textarea::placeholder{color:#475569} select option{background:#1E293B;color:#F8FAFC} @media(max-width:900px){.sb-grid{grid-template-columns:1fr !important}.sb-sticky{position:static !important}.sb-header{flex-direction:column;align-items:flex-start !important;gap:12px !important;height:auto !important;padding:0.75rem clamp(1.5rem,5vw,3rem) !important}.sb-header-nav{flex-wrap:wrap}.sb-header-actions{flex-wrap:wrap}} @media(max-width:600px){.field-row{flex-wrap:wrap !important}.field-row input{min-width:0 !important}.field-del{display:none !important}.field-row:hover .field-del{display:flex !important}}`}</style>
+
+      {/* HEADER */}
+      <div className="sb-header" style={{ borderBottom:`1px solid ${C.border}`, padding:'0 clamp(1.5rem,5vw,3rem)', height:60, display:'flex', alignItems:'center' }}>
+        <div style={{ maxWidth:1200, margin:'0 auto', width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:8 }}>
+          <nav style={{ display:'flex', alignItems:'center', gap:8, fontFamily:"'DM Mono',monospace", fontSize:13, color:C.muted }}>
+            <Link to="/dashboard" style={{ color:C.muted, textDecoration:'none' }} onMouseEnter={e=>e.target.style.color=C.fg} onMouseLeave={e=>e.target.style.color=C.muted}>Dashboard</Link>
+            <span style={{color:'#475569'}}>/</span>
+            <Link to={`/project/${slug}`} style={{ color:C.muted, textDecoration:'none' }} onMouseEnter={e=>e.target.style.color=C.fg} onMouseLeave={e=>e.target.style.color=C.muted}>{slug}</Link>
+            <span style={{color:'#475569'}}>/</span>
+            <span style={{color:C.fg}}>{name}</span>
           </nav>
-          <div className="flex items-center gap-2">
-            <Link
-              to={`/project/${slug}/resource/${name}/endpoints`}
-              className="text-xs px-3 py-1.5 rounded-lg border border-white/10 text-white/50
-                hover:border-white/20 hover:text-white transition-colors"
-            >
-              View Endpoints →
-            </Link>
-            <button
-              onClick={saveSchema}
-              disabled={saving}
-              className="text-xs px-4 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500
-                text-white font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              {saving ? 'Saving…' : 'Save Schema'}
+          <div className="sb-header-actions" style={{ display:'flex', alignItems:'center', gap:10 }}>
+            <Link to={`/project/${slug}/resource/${name}/endpoints`} style={{ fontSize:12, padding:'0.35rem 0.85rem', borderRadius:8, border:`1px solid ${C.border}`, color:C.muted, textDecoration:'none', transition:'color 150ms,border-color 150ms' }} onMouseEnter={e=>{e.currentTarget.style.color=C.fg;e.currentTarget.style.borderColor=C.muted}} onMouseLeave={e=>{e.currentTarget.style.color=C.muted;e.currentTarget.style.borderColor=C.border}}>View Endpoints →</Link>
+            <button onClick={saveSchema} disabled={saving} style={{ fontSize:12, padding:'0.35rem 1rem', borderRadius:8, background:saving?C.accentDim:C.accent, color:'#0F172A', fontFamily:"'Space Grotesk',sans-serif", fontWeight:600, border:'none', cursor:saving?'not-allowed':'pointer', opacity:saving?0.7:1, transition:'background 150ms' }}>
+              {saving?'Saving…':'Save Schema'}
             </button>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-6">
+      <div style={{ maxWidth:1200, margin:'0 auto', padding:'2rem clamp(1.5rem,5vw,3rem)' }}>
+        <div className="sb-grid" style={{ display:'grid', gridTemplateColumns:'1fr 360px', gap:24, alignItems:'start' }}>
 
-          {/* ── LEFT — Field editor ── */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
+          {/* LEFT — Field editor */}
+          <div>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20 }}>
               <div>
-                <h2 className="text-lg font-semibold">Schema Builder</h2>
-                <p className="text-xs text-white/30 mt-0.5">
-                  {fields.length} field{fields.length !== 1 ? 's' : ''} defined
-                </p>
+                <h2 style={{ fontFamily:"'Space Grotesk',sans-serif", fontSize:17, fontWeight:600 }}>Schema Builder</h2>
+                <p style={{ fontSize:12, color:C.muted, marginTop:2 }}>{fields.length} field{fields.length!==1?'s':''} defined</p>
               </div>
-              <button
-                onClick={addField}
-                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg
-                  bg-white/5 border border-white/10 text-white/70 hover:bg-white/10
-                  hover:text-white transition-colors"
-              >
-                <span className="text-base leading-none">+</span> Add Field
+              <button onClick={addField} style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, padding:'0.4rem 0.85rem', borderRadius:8, background:'rgba(255,255,255,0.04)', border:`1px solid ${C.border}`, color:C.muted, cursor:'pointer', transition:'color 150ms,background 150ms', fontFamily:"'DM Sans',sans-serif" }} onMouseEnter={e=>{e.currentTarget.style.color=C.fg;e.currentTarget.style.background='rgba(255,255,255,0.08)'}} onMouseLeave={e=>{e.currentTarget.style.color=C.muted;e.currentTarget.style.background='rgba(255,255,255,0.04)'}}>
+                <span style={{fontSize:16,lineHeight:1}}>+</span> Add Field
               </button>
             </div>
 
-            {/* Field list */}
-            <div className="space-y-2">
+            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
               {loading ? (
-                Array.from({ length: 3 }).map((_, i) => <FieldRowSkeleton key={i} />)
-              ) : fields.length === 0 ? (
-                <div className="py-14 flex flex-col items-center text-center rounded-xl
-                  border border-dashed border-white/[0.08] bg-white/[0.01]">
-                  <div className="w-12 h-12 rounded-xl border border-white/[0.07] bg-white/[0.02]
-                    flex items-center justify-center mb-4">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#818CF8"
-                      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.6">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                      <polyline points="14 2 14 8 20 8"/>
-                      <line x1="12" y1="18" x2="12" y2="12"/>
-                      <line x1="9" y1="15" x2="15" y2="15"/>
-                    </svg>
+                Array.from({length:3}).map((_,i)=><FieldRowSkeleton key={i}/>)
+              ) : fields.length===0 ? (
+                <div style={{ padding:'3.5rem 2rem', display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center', border:`1px dashed ${C.border}`, borderRadius:12, background:'rgba(255,255,255,0.01)' }}>
+                  <div style={{ width:44, height:44, borderRadius:10, border:`1px solid ${C.border}`, background:'rgba(255,255,255,0.02)', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:14 }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.accent} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
                   </div>
-                  <p className="text-sm font-medium text-white/40 mb-1">No fields defined</p>
-                  <p className="text-xs text-white/20 max-w-[220px] mb-5 leading-relaxed">
-                    Add fields to define the shape of your fake data — name, type, required.
-                  </p>
-                  <button
-                    onClick={addField}
-                    className="text-xs px-4 py-2 rounded-lg bg-white/5 border border-white/10
-                      text-white/60 hover:bg-violet-500/10 hover:border-violet-500/30
-                      hover:text-violet-300 transition-colors"
-                  >
-                    + Add first field
-                  </button>
+                  <p style={{ fontSize:13, fontWeight:500, color:'rgba(255,255,255,0.4)', marginBottom:6, fontFamily:"'Space Grotesk',sans-serif" }}>No fields defined</p>
+                  <p style={{ fontSize:12, color:'rgba(255,255,255,0.2)', maxWidth:220, marginBottom:16, lineHeight:1.6 }}>Add fields to define the shape of your fake data.</p>
+                  <button onClick={addField} style={{ fontSize:12, padding:'0.45rem 1rem', borderRadius:8, background:'rgba(34,197,94,0.08)', border:`1px solid rgba(34,197,94,0.2)`, color:C.accent, cursor:'pointer', transition:'background 150ms', fontFamily:"'DM Sans',sans-serif" }}>+ Add first field</button>
                 </div>
               ) : (
-                fields.map((field, i) => (
+                fields.map((field,i) => (
                   <div
                     key={i}
-                    className="flex items-start gap-3 p-3 rounded-xl border border-white/[0.07]
-                      bg-white/[0.02] hover:bg-white/[0.04] transition-colors group"
+                    className="field-row"
+                    onDragOver={e => onDragOver(e, i)}
+                    onDrop={e => onDrop(e, i)}
+                    style={{
+                      display:'flex', alignItems:'center', gap:10, padding:'0.75rem',
+                      borderRadius:10,
+                      border:`1px solid ${dragOverIdx===i && dragIdx!==i ? 'rgba(34,197,94,0.45)' : C.border}`,
+                      background: dragOverIdx===i && dragIdx!==i ? 'rgba(34,197,94,0.04)' : 'rgba(255,255,255,0.02)',
+                      transition:'background 150ms, border-color 150ms',
+                      opacity: dragIdx===i ? 0.35 : 1,
+                      minWidth:0
+                    }}
                   >
-                    {/* Field name */}
+                    {/* Drag handle — mouse/touch only, intentionally not in tab order */}
+                    <div
+                      draggable
+                      onDragStart={e => onDragStart(e, i)}
+                      onDragEnd={onDragEnd}
+                      title="Drag to reorder"
+                      aria-hidden="true"
+                      style={{ cursor:'grab', color:'rgba(255,255,255,0.18)', flexShrink:0, display:'flex', alignItems:'center', padding:'0 2px', userSelect:'none' }}
+                    >
+                      <svg width="10" height="16" viewBox="0 0 10 16" fill="currentColor" aria-hidden="true">
+                        <circle cx="2.5" cy="3"  r="1.5"/><circle cx="7.5" cy="3"  r="1.5"/>
+                        <circle cx="2.5" cy="8"  r="1.5"/><circle cx="7.5" cy="8"  r="1.5"/>
+                        <circle cx="2.5" cy="13" r="1.5"/><circle cx="7.5" cy="13" r="1.5"/>
+                      </svg>
+                    </div>
                     <input
                       type="text"
                       placeholder="fieldName"
                       value={field.fieldName}
-                      onChange={e => updateField(i, 'fieldName', e.target.value)}
-                      className="flex-1 bg-black/40 border border-white/10 rounded-lg px-3 py-2
-                        text-sm font-mono text-white placeholder-white/20
-                        focus:outline-none focus:border-violet-500/50 transition-colors"
+                      onChange={e=>updateField(i,'fieldName',e.target.value)}
+                      style={{
+                        ...inputBase,
+                        flex:1, minWidth:0,
+                        borderColor: field.fieldName && !isValidFieldName(field.fieldName) ? C.red
+                                    : field.fieldName && isValidFieldName(field.fieldName)  ? 'rgba(34,197,94,0.5)'
+                                    : C.border
+                      }}
                     />
-
-                    {/* Type dropdown */}
-                    <select
-                      value={field.type}
-                      onChange={e => updateField(i, 'type', e.target.value)}
-                      className="w-28 bg-black/40 border border-white/10 rounded-lg px-2 py-2
-                        text-xs text-white/70 focus:outline-none focus:border-violet-500/50
-                        transition-colors cursor-pointer"
-                    >
-                      {TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                    <select value={field.type} onChange={e=>updateField(i,'type',e.target.value)} style={{ ...selectBase, width:110 }}>
+                      {TYPES.map(t=><option key={t} value={t}>{t}</option>)}
                     </select>
-
-                    {/* Enum values input (only when type=enum) */}
-                    {field.type === 'enum' && (
-                      <input
-                        type="text"
-                        placeholder="a,b,c"
-                        value={(field.values || []).join(',')}
-                        onChange={e => updateField(i, 'values', e.target.value.split(',').map(s => s.trim()))}
-                        className="w-28 bg-black/40 border border-amber-500/20 rounded-lg px-2 py-2
-                          text-xs font-mono text-amber-300/70 placeholder-amber-500/20
-                          focus:outline-none focus:border-amber-500/40 transition-colors"
-                      />
+                    {field.type==='enum' && (
+                      <input type="text" placeholder="a,b,c" value={(field.values||[]).join(',')} onChange={e=>updateField(i,'values',e.target.value.split(',').map(s=>s.trim()))} style={{ ...inputBase, width:100, color:C.yellow, borderColor:'rgba(251,191,36,0.25)', fontSize:11 }}/>
                     )}
-
-                    {/* Required toggle */}
-                    <label className="flex items-center gap-1.5 cursor-pointer shrink-0 mt-2">
-                      <input
-                        type="checkbox"
-                        checked={!!field.required}
-                        onChange={e => updateField(i, 'required', e.target.checked)}
-                        className="accent-violet-500 w-3.5 h-3.5 cursor-pointer"
-                      />
-                      <span className="text-[10px] text-white/30">req</span>
+                    <label style={{ display:'flex', alignItems:'center', gap:6, cursor:'pointer', flexShrink:0 }}>
+                      <input type="checkbox" checked={!!field.required} onChange={e=>updateField(i,'required',e.target.checked)} style={{ accentColor:C.accent, width:13, height:13, cursor:'pointer' }}/>
+                      <span style={{ fontSize:10, color:'rgba(255,255,255,0.3)' }}>req</span>
                     </label>
-
-                    {/* Remove */}
-                    <button
-                      onClick={() => removeField(i)}
-                      className="shrink-0 mt-1 w-7 h-7 flex items-center justify-center rounded-lg
-                        text-white/20 hover:text-red-400 hover:bg-red-500/10
-                        opacity-0 group-hover:opacity-100 transition-all text-sm"
-                    >
-                      ✕
-                    </button>
+                    <button onClick={()=>removeField(i)} className="field-del" style={{ width:28, height:28, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:8, background:'transparent', border:'none', color:'rgba(255,255,255,0.2)', cursor:'pointer', transition:'color 150ms,background 150ms', fontSize:13, flexShrink:0 }} onMouseEnter={e=>{e.currentTarget.style.color=C.red;e.currentTarget.style.background='rgba(239,68,68,0.08)'}} onMouseLeave={e=>{e.currentTarget.style.color='rgba(255,255,255,0.2)';e.currentTarget.style.background='transparent'}}>✕</button>
                   </div>
                 ))
               )}
             </div>
 
-            {/* Error Simulation config — below field editor */}
             {resource && (
-              <ErrorSimConfig
-                slug={slug}
-                resourceName={name}
-                initialErrorRate={resource.errorRate || 0}
-                initialDelay={resource.delay || 0}
-              />
+              <div style={{ marginTop:20 }}>
+                <ErrorSimConfig slug={slug} resourceName={name} initialErrorRate={resource.errorRate||0} initialDelay={resource.delay||0}/>
+              </div>
             )}
           </div>
 
-          {/* ── RIGHT — Live JSON preview ── */}
-          <div className="space-y-4">
-            <div className="sticky top-6">
-              <div className="rounded-xl border border-white/10 bg-black/60 overflow-hidden">
-                {/* Preview header */}
-                <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-xs font-semibold text-white/70">Live Preview</span>
-                  </div>
-                  <button
-                    onClick={copyPreview}
-                    className="text-[11px] px-2.5 py-1 rounded-md border border-white/10
-                      text-white/40 hover:text-white hover:border-white/20 transition-colors"
-                  >
-                    {previewCopied ? '✓ Copied' : '⎘ Copy'}
-                  </button>
+          {/* RIGHT — Live preview */}
+          <div className="sb-sticky" style={{ position:'sticky', top:24, display:'flex', flexDirection:'column', gap:16 }}>
+            {/* JSON Preview */}
+            <div style={{ border:`1px solid ${C.border}`, borderRadius:12, overflow:'hidden', background:'rgba(0,0,0,0.5)' }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0.6rem 1rem', borderBottom:`1px solid rgba(255,255,255,0.06)`, background:'rgba(255,255,255,0.02)' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  <span style={{ width:8, height:8, borderRadius:'50%', background:C.accent, animation:'pulse 2s infinite', display:'inline-block' }}/>
+                  <span style={{ fontSize:11, fontWeight:600, color:'rgba(255,255,255,0.7)', fontFamily:"'Space Grotesk',sans-serif" }}>Live Preview</span>
                 </div>
-
-                {/* JSON output */}
-                <pre className="p-4 text-xs font-mono text-emerald-300/80 overflow-x-auto
-                  whitespace-pre-wrap break-all leading-relaxed min-h-[120px]">
-                  {fields.length === 0 || fields.every(f => !f.fieldName.trim())
-                    ? <span className="text-white/20">// add fields to see preview</span>
-                    : JSON.stringify(preview, null, 2)
-                  }
-                </pre>
+                <button onClick={copyPreview} style={{ fontSize:11, padding:'0.2rem 0.6rem', borderRadius:6, border:`1px solid ${C.border}`, background:'transparent', color:previewCopied?C.accent:C.muted, cursor:'pointer', transition:'color 150ms', fontFamily:"'DM Sans',sans-serif" }}>
+                  {previewCopied?'✓ Copied':'⎘ Copy'}
+                </button>
               </div>
+              <pre style={{ padding:'1rem', fontSize:11, fontFamily:"'DM Mono',monospace", color:`${C.accent}cc`, overflowX:'auto', whiteSpace:'pre-wrap', wordBreak:'break-all', lineHeight:1.7, minHeight:100 }}>
+                {fields.length===0||fields.every(f=>!f.fieldName.trim())
+                  ? <span style={{color:'rgba(255,255,255,0.15)'}}>// add fields to see preview</span>
+                  : JSON.stringify(preview,null,2)
+                }
+              </pre>
+            </div>
 
-              {/* Field type reference card */}
-              <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 mt-4">
-                <p className="text-[10px] font-semibold text-white/30 uppercase tracking-wider mb-3">
-                  Type Reference
-                </p>
-                <div className="space-y-1.5">
-                  {TYPES.map(t => (
-                    <div key={t} className="flex items-center justify-between">
-                      <span className="text-[11px] font-mono text-violet-300/70">{t}</span>
-                      <span className="text-[10px] text-white/20 font-mono truncate ml-3">
-                        {String(FAKE_DEFAULTS[t])}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+            {/* Type reference */}
+            <div style={{ border:`1px solid rgba(255,255,255,0.06)`, borderRadius:12, padding:'1rem', background:'rgba(255,255,255,0.02)' }}>
+              <p style={{ fontSize:10, fontWeight:600, color:C.muted, textTransform:'uppercase', letterSpacing:'0.08em', fontFamily:"'Space Grotesk',sans-serif", marginBottom:12 }}>Type Reference</p>
+              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                {TYPES.map(t=>(
+                  <div key={t} style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                    <span style={{ fontSize:11, fontFamily:"'DM Mono',monospace", color:C.accent }}>{t}</span>
+                    <span style={{ fontSize:10, fontFamily:"'DM Mono',monospace", color:'rgba(255,255,255,0.5)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:180, marginLeft:8 }}>{String(FAKE_DEFAULTS[t])}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>

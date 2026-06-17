@@ -2,16 +2,18 @@ import { useState, useEffect, useCallback } from 'react'
 import api from '../lib/axios'
 import { LogRowSkeleton } from './Skeleton'
 
-const METHOD_STYLE = {
-  GET:    'text-emerald-400 bg-emerald-400/10 border-emerald-400/25',
-  POST:   'text-blue-400   bg-blue-400/10   border-blue-400/25',
-  PUT:    'text-amber-400  bg-amber-400/10  border-amber-400/25',
-  DELETE: 'text-red-400    bg-red-400/10    border-red-400/25'
+const C = { accent:"#22C55E", red:"#EF4444", yellow:"#FBBF24", blue:"#60A5FA", muted:"#94A3B8", border:"#334155" }
+
+const METHOD_COLOR = {
+  GET:    { text:'#22C55E', bg:'rgba(34,197,94,0.1)',   border:'rgba(34,197,94,0.25)'  },
+  POST:   { text:'#60A5FA', bg:'rgba(96,165,250,0.1)',  border:'rgba(96,165,250,0.25)' },
+  PUT:    { text:'#FBBF24', bg:'rgba(251,191,36,0.1)',  border:'rgba(251,191,36,0.25)' },
+  DELETE: { text:'#EF4444', bg:'rgba(239,68,68,0.1)',   border:'rgba(239,68,68,0.25)'  },
 }
 
 function timeAgo(dateStr) {
   const diff = Date.now() - new Date(dateStr).getTime()
-  if (diff < 60_000)  return `${Math.floor(diff / 1000)}s ago`
+  if (diff < 60_000)   return `${Math.floor(diff / 1000)}s ago`
   if (diff < 3600_000) return `${Math.floor(diff / 60_000)}m ago`
   return new Date(dateStr).toLocaleTimeString()
 }
@@ -20,7 +22,7 @@ export default function RequestLogsPanel({ projectSlug }) {
   const [logs, setLogs]               = useState([])
   const [loading, setLoading]         = useState(true)
   const [autoRefresh, setAutoRefresh] = useState(true)
-  const [tick, setTick]               = useState(0) // forces re-render for timeAgo
+  const [tick, setTick]               = useState(0)
 
   const fetchLogs = useCallback(async () => {
     try {
@@ -30,137 +32,78 @@ export default function RequestLogsPanel({ projectSlug }) {
     finally { setLoading(false) }
   }, [projectSlug])
 
-  // Initial fetch
   useEffect(() => { fetchLogs() }, [fetchLogs])
-
-  // Auto-refresh every 5 s
   useEffect(() => {
     if (!autoRefresh) return
     const id = setInterval(fetchLogs, 5000)
     return () => clearInterval(id)
   }, [autoRefresh, fetchLogs])
-
-  // Re-render timeAgo every 30 s without refetching
   useEffect(() => {
     const id = setInterval(() => setTick(p => p + 1), 30_000)
     return () => clearInterval(id)
   }, [])
 
+  const errors   = logs.filter(l => l.statusCode >= 400).length
+  const avgMs    = logs.length ? Math.round(logs.reduce((s, l) => s + l.duration, 0) / logs.length) : 0
+  const errorPct = logs.length ? Math.round((errors / logs.length) * 100) : 0
+
   return (
-    <div className="rounded-xl border border-white/10 bg-black/40 backdrop-blur-sm overflow-hidden">
+    <div style={{ border:`1px solid ${C.border}`, borderRadius:12, overflow:'hidden', background:'rgba(0,0,0,0.35)', backdropFilter:'blur(8px)' }}>
 
-      {/* ── Header ── */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-white/[0.02]">
-        <div className="flex items-center gap-2.5">
-          <span className="text-sm font-semibold text-white">Request Logs</span>
-          <span className="text-[10px] font-mono text-white/25 bg-white/5 px-1.5 py-0.5 rounded">
-            last 100
-          </span>
-          {logs.length > 0 && (
-            <span className="text-[10px] text-white/30">
-              {logs.length} entries
-            </span>
-          )}
+      {/* Header */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0.75rem 1rem', borderBottom:`1px solid ${C.border}`, background:'rgba(255,255,255,0.02)', flexWrap:'wrap', gap:8 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+          <span style={{ fontFamily:"'Space Grotesk',sans-serif", fontSize:13, fontWeight:600, color:'#F8FAFC' }}>Request Logs</span>
+          <span style={{ fontSize:10, fontFamily:"'DM Mono',monospace", color:'rgba(255,255,255,0.25)', background:'rgba(255,255,255,0.05)', padding:'0.15rem 0.5rem', borderRadius:5 }}>last 100</span>
+          {logs.length > 0 && <span style={{ fontSize:10, color:'rgba(255,255,255,0.3)' }}>{logs.length} entries</span>}
         </div>
-
-        <div className="flex items-center gap-2">
+        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
           <button
             onClick={() => setAutoRefresh(p => !p)}
-            className={`flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-md border transition-colors ${
-              autoRefresh
-                ? 'border-emerald-500/40 text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20'
-                : 'border-white/10 text-white/30 hover:text-white/50'
-            }`}
+            style={{ display:'flex', alignItems:'center', gap:6, fontSize:11, padding:'0.3rem 0.75rem', borderRadius:6, border:autoRefresh?`1px solid rgba(34,197,94,0.4)`:`1px solid ${C.border}`, background:autoRefresh?'rgba(34,197,94,0.1)':'transparent', color:autoRefresh?C.accent:'rgba(255,255,255,0.3)', cursor:'pointer', transition:'all 150ms', fontFamily:"'DM Sans',sans-serif" }}
           >
-            <span className={`w-1.5 h-1.5 rounded-full ${autoRefresh ? 'bg-emerald-400 animate-pulse' : 'bg-white/20'}`} />
+            <span style={{ width:6, height:6, borderRadius:'50%', background:autoRefresh?C.accent:'rgba(255,255,255,0.2)', animation:autoRefresh?'pulse 2s infinite':undefined, display:'inline-block' }}/>
             {autoRefresh ? 'Live' : 'Paused'}
           </button>
-
-          <button
-            onClick={fetchLogs}
-            className="text-[11px] text-white/30 hover:text-white/70 transition-colors px-2 py-1 rounded-md hover:bg-white/5"
-          >
-            ↻
-          </button>
-
-          {logs.length > 0 && (
-            <button
-              onClick={() => setLogs([])}
-              className="text-[11px] text-white/20 hover:text-red-400/70 transition-colors px-2 py-1 rounded-md hover:bg-red-500/5"
-              title="Clear local view (does not delete from DB)"
-            >
-              Clear
-            </button>
-          )}
+          <button onClick={fetchLogs} style={{ fontSize:13, color:'rgba(255,255,255,0.3)', background:'transparent', border:'none', cursor:'pointer', padding:'0.3rem 0.5rem', borderRadius:6, transition:'color 150ms' }} onMouseEnter={e=>e.currentTarget.style.color='rgba(255,255,255,0.7)'} onMouseLeave={e=>e.currentTarget.style.color='rgba(255,255,255,0.3)'}>↻</button>
+          {logs.length > 0 && <button onClick={() => setLogs([])} style={{ fontSize:11, color:'rgba(255,255,255,0.2)', background:'transparent', border:'none', cursor:'pointer', padding:'0.3rem 0.5rem', borderRadius:6, transition:'color 150ms', fontFamily:"'DM Sans',sans-serif" }} onMouseEnter={e=>e.currentTarget.style.color='rgba(239,68,68,0.7)'} onMouseLeave={e=>e.currentTarget.style.color='rgba(255,255,255,0.2)'}>Clear</button>}
         </div>
       </div>
 
-      {/* ── Log rows ── */}
-      <div className="max-h-72 overflow-y-auto divide-y divide-white/[0.04]">
+      {/* Log rows */}
+      <div style={{ maxHeight:288, overflowY:'auto' }}>
         {loading ? (
-          Array.from({ length: 5 }).map((_, i) => <LogRowSkeleton key={i} />)
+          Array.from({ length: 5 }).map((_, i) => <LogRowSkeleton key={i}/>)
         ) : logs.length === 0 ? (
-          <div className="py-12 text-center space-y-1">
-            <p className="text-xs text-white/25">No requests recorded yet</p>
-            <p className="text-[10px] text-white/15">Hit your API endpoints to see logs appear here</p>
+          <div style={{ padding:'3rem 1rem', textAlign:'center' }}>
+            <p style={{ fontSize:12, color:'rgba(255,255,255,0.25)' }}>No requests recorded yet</p>
+            <p style={{ fontSize:11, color:'rgba(255,255,255,0.15)', marginTop:4 }}>Hit your API endpoints to see logs appear here</p>
           </div>
         ) : (
-          logs.map(log => (
-            <div
-              key={log._id}
-              className="flex items-center gap-3 px-4 py-2 font-mono text-[11px] hover:bg-white/[0.02] transition-colors group"
-            >
-              {/* Method badge */}
-              <span className={`shrink-0 px-1.5 py-0.5 rounded border text-[10px] font-bold
-                ${METHOD_STYLE[log.method] || 'text-white/40 bg-white/5 border-white/10'}`}>
-                {log.method}
-              </span>
-
-              {/* Status */}
-              <span className={`shrink-0 w-8 text-center font-bold text-xs
-                ${log.statusCode < 400 ? 'text-emerald-400' : 'text-red-400'}`}>
-                {log.statusCode}
-              </span>
-
-              {/* Path */}
-              <span className="flex-1 text-white/40 truncate group-hover:text-white/60 transition-colors">
-                {log.path}
-              </span>
-
-              {/* Duration */}
-              <span className={`shrink-0 text-right w-12
-                ${log.duration > 1000 ? 'text-amber-400/70' : 'text-white/25'}`}>
-                {log.duration}ms
-              </span>
-
-              {/* Time */}
-              <span className="shrink-0 text-white/20 hidden sm:block w-14 text-right" key={tick}>
-                {timeAgo(log.timestamp)}
-              </span>
-            </div>
-          ))
+          logs.map(log => {
+            const mc = METHOD_COLOR[log.method] || { text:'rgba(255,255,255,0.4)', bg:'rgba(255,255,255,0.05)', border:'rgba(255,255,255,0.1)' }
+            return (
+              <div key={log._id} style={{ display:'flex', alignItems:'center', gap:10, padding:'0.5rem 1rem', fontFamily:"'DM Mono',monospace", fontSize:11, borderBottom:`1px solid rgba(255,255,255,0.04)`, transition:'background 150ms', cursor:'default' }} onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,0.02)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                <span style={{ flexShrink:0, padding:'0.15rem 0.4rem', borderRadius:5, border:`1px solid ${mc.border}`, background:mc.bg, color:mc.text, fontSize:10, fontWeight:700, width:44, textAlign:'center' }}>{log.method}</span>
+                <span style={{ flexShrink:0, width:32, textAlign:'center', fontWeight:700, fontSize:12, color:log.statusCode<400?C.accent:C.red }}>{log.statusCode}</span>
+                <span style={{ flex:1, color:'rgba(255,255,255,0.4)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{log.path}</span>
+                <span style={{ flexShrink:0, textAlign:'right', width:52, color:log.duration>1000?C.yellow:'rgba(255,255,255,0.25)' }}>{log.duration}ms</span>
+                <span style={{ flexShrink:0, color:'rgba(255,255,255,0.2)', width:56, textAlign:'right' }} key={tick}>{timeAgo(log.timestamp)}</span>
+              </div>
+            )
+          })
         )}
       </div>
 
-      {/* ── Footer summary bar ── */}
-      {logs.length > 0 && (() => {
-        const errors   = logs.filter(l => l.statusCode >= 400).length
-        const avgMs    = Math.round(logs.reduce((s, l) => s + l.duration, 0) / logs.length)
-        const errorPct = Math.round((errors / logs.length) * 100)
-        return (
-          <div className="flex items-center gap-4 px-4 py-2 border-t border-white/[0.06] bg-white/[0.01]">
-            <span className="text-[10px] text-white/20">
-              avg <span className="text-white/40">{avgMs}ms</span>
-            </span>
-            <span className="text-[10px] text-white/20">
-              errors <span className={errorPct > 0 ? 'text-red-400/70' : 'text-white/40'}>{errorPct}%</span>
-            </span>
-            <span className="text-[10px] text-white/20 ml-auto">
-              {autoRefresh ? 'refreshes every 5s' : 'auto-refresh off'}
-            </span>
-          </div>
-        )
-      })()}
+      {/* Footer */}
+      {logs.length > 0 && (
+        <div style={{ display:'flex', alignItems:'center', gap:16, padding:'0.5rem 1rem', borderTop:`1px solid rgba(255,255,255,0.06)`, background:'rgba(255,255,255,0.01)' }}>
+          <span style={{ fontSize:10, color:'rgba(255,255,255,0.2)', fontFamily:"'DM Mono',monospace" }}>avg <span style={{color:'rgba(255,255,255,0.4)'}}>{avgMs}ms</span></span>
+          <span style={{ fontSize:10, color:'rgba(255,255,255,0.2)', fontFamily:"'DM Mono',monospace" }}>errors <span style={{color:errorPct>0?'rgba(239,68,68,0.7)':'rgba(255,255,255,0.4)'}}>{errorPct}%</span></span>
+          <span style={{ fontSize:10, color:'rgba(255,255,255,0.2)', marginLeft:'auto', fontFamily:"'DM Mono',monospace" }}>{autoRefresh?'refreshes every 5s':'auto-refresh off'}</span>
+        </div>
+      )}
+      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
     </div>
   )
 }

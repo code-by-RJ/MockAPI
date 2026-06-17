@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -67,7 +67,7 @@
 }
 
 @layer utilities {
-  .font-display { font-family: 'Syne', sans-serif; }
+  .font-display { font-family: 'Space Grotesk', sans-serif; }
   .font-mono    { font-family: 'DM Mono', monospace; }
 
   .dot-grid {

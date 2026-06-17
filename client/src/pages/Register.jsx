@@ -6,6 +6,7 @@ const C = {
   bg: "#0F172A", surface: "#1E293B", surface2: "#272F42",
   border: "#334155", fg: "#F8FAFC", muted: "#94A3B8",
   accent: "#22C55E", accentDim: "#16A34A", red: "#EF4444",
+  blue: "#60A5FA", yellow: "#FBBF24",
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -31,7 +32,7 @@ function passwordStrength(pw) {
   if (/[^A-Za-z0-9]/.test(pw)) score++
   if (score <= 1) return { level: 1, label: 'Weak',   color: C.red }
   if (score <= 3) return { level: 2, label: 'Fair',   color: '#F59E0B' }
-  if (score <= 4) return { level: 3, label: 'Good',   color: '#60A5FA' }
+  if (score <= 4) return { level: 3, label: 'Good',   color: C.blue }
   return             { level: 4, label: 'Strong', color: C.accent }
 }
 
@@ -54,7 +55,7 @@ function ValidatedInput({ type = 'text', placeholder, value, onChange, onBlur, e
   const isInvalid = touched && !!error
   return (
     <div>
-      <label style={{ display: 'block', fontSize: 12, color: C.muted, marginBottom: 6, fontFamily: "'DM Sans', sans-serif" }}>{label}</label>
+      <label style={{ display: 'block', fontSize: 12, color: C.muted, marginBottom: 6 }}>{label}</label>
       <div style={{ position: 'relative' }}>
         <input
           type={type} placeholder={placeholder} value={value}
@@ -67,16 +68,8 @@ function ValidatedInput({ type = 'text', placeholder, value, onChange, onBlur, e
             outline: 'none', transition: 'border-color 150ms', boxSizing: 'border-box',
           }}
         />
-        {isValid && (
-          <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: C.accent, pointerEvents: 'none' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-          </span>
-        )}
-        {isInvalid && (
-          <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: C.red, pointerEvents: 'none' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </span>
-        )}
+        {isValid && <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: C.accent, pointerEvents: 'none' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>}
+        {isInvalid && <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: C.red, pointerEvents: 'none' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>}
       </div>
       <FieldError msg={isInvalid ? error : ''} />
     </div>
@@ -113,36 +106,80 @@ export default function Register() {
         setApiError('An account with this email already exists. Try signing in instead.')
       } else if (msg.toLowerCase().includes('email')) {
         setApiError('This email address is invalid or not allowed.')
-      } else {
-        setApiError(msg || 'Registration failed. Please try again.')
-      }
+      } else { setApiError(msg || 'Registration failed. Please try again.') }
     } finally { setLoading(false) }
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', fontFamily: "'DM Sans', sans-serif", position: 'relative' }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500&family=DM+Mono:wght@400;500&display=swap'); * { box-sizing: border-box; margin: 0; padding: 0; } input::placeholder { color: #475569; }`}</style>
+    <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', fontFamily: "'DM Sans', sans-serif" }}>
+      <style>{`
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        input::placeholder { color: #475569; }
+        @media (max-width: 768px) { .auth-left { display: none !important; } .auth-right { width: 100% !important; } }
+      `}</style>
 
-      <div style={{ position: 'absolute', top: '30%', left: '50%', transform: 'translate(-50%,-50%)', width: 500, height: 300, borderRadius: '50%', background: 'rgba(34,197,94,0.04)', filter: 'blur(100px)', pointerEvents: 'none' }}/>
+      {/* LEFT PANEL */}
+      <div className="auth-left" style={{ width: '45%', background: C.surface, borderRight: `1px solid ${C.border}`, padding: '3rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', top: '-10%', right: '-10%', width: 350, height: 350, borderRadius: '50%', background: 'rgba(34,197,94,0.05)', filter: 'blur(80px)', pointerEvents: 'none' }}/>
 
-      <div style={{ width: '100%', maxWidth: 400, position: 'relative' }}>
         {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 32 }}>
-          <div style={{ width: 32, height: 32, background: C.accent, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 32, height: 32, background: C.accent, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#0F172A" strokeWidth="2" strokeLinecap="round">
               <rect x="1" y="4" width="14" height="10" rx="2"/><path d="M4 4V3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v1"/><path d="M6 9l2 2 2-2"/>
             </svg>
           </div>
-          <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 15, color: C.fg }}>MockAPI</span>
+          <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 16, color: C.fg }}>MockAPI</span>
         </div>
 
-        {/* Card */}
-        <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: '2rem', boxShadow: '0 24px 60px rgba(0,0,0,0.35)' }}>
-          <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 20, color: C.fg, marginBottom: 4 }}>Create account</h2>
-          <p style={{ fontSize: 13, color: C.muted, marginBottom: 24 }}>Start building fake APIs in seconds</p>
+        {/* Middle */}
+        <div style={{ position: 'relative' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', color: C.accent, padding: '0.3rem 0.8rem', borderRadius: 100, fontSize: 11, fontWeight: 600, fontFamily: "'Space Grotesk', sans-serif", marginBottom: '1rem' }}>
+            <span style={{ width: 5, height: 5, background: C.accent, borderRadius: '50%', animation: 'pulse 2s infinite' }}/>
+            Free forever — no credit card
+          </div>
+
+          <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: 700, lineHeight: 1.2, color: C.fg, marginBottom: '1rem', letterSpacing: '-0.02em' }}>
+            Start mocking APIs<br/>
+            <span style={{ color: C.accent }}>in 60 seconds.</span>
+          </h2>
+          <p style={{ fontSize: 14, color: C.muted, lineHeight: 1.7, marginBottom: '2rem', maxWidth: 320 }}>
+            No backend needed. No YAML. No config. Just a URL that returns exactly what you tell it to.
+          </p>
+
+          {/* Steps */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {[
+              { num: '01', title: 'Create a resource', desc: 'Name it users, products, orders — anything.' },
+              { num: '02', title: 'Configure endpoint', desc: 'Pick method, seed data, set response code.' },
+              { num: '03', title: 'Hit the live URL', desc: 'Instant JSON response. Copy & paste to your app.' },
+            ].map(({ num, title, desc }) => (
+              <div key={num} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                <div style={{ width: 28, height: 28, borderRadius: 7, background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontFamily: "'DM Mono', monospace", fontSize: 10, color: C.accent, fontWeight: 500 }}>{num}</div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.fg, fontFamily: "'Space Grotesk', sans-serif" }}>{title}</div>
+                  <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Bottom quote */}
+        <div style={{ borderLeft: `2px solid rgba(34,197,94,0.3)`, paddingLeft: 12 }}>
+          <p style={{ fontSize: 12, color: C.muted, fontStyle: 'italic', lineHeight: 1.6 }}>"Saved us days of backend work before the demo."</p>
+          <p style={{ fontSize: 11, color: '#475569', marginTop: 4 }}>— Frontend dev, using MockAPI</p>
+        </div>
+      </div>
+
+      {/* RIGHT PANEL */}
+      <div className="auth-right" style={{ width: '55%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+        <div style={{ width: '100%', maxWidth: 400 }}>
+          <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 22, color: C.fg, marginBottom: 4 }}>Create account</h2>
+          <p style={{ fontSize: 13, color: C.muted, marginBottom: 28 }}>Start building fake APIs in seconds</p>
 
           {apiError && (
-            <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: C.red, fontSize: 12, borderRadius: 10, padding: '0.65rem 0.85rem', marginBottom: 16, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+            <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: C.red, fontSize: 12, borderRadius: 10, padding: '0.65rem 0.85rem', marginBottom: 20, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ marginTop: 1, flexShrink: 0 }}>
                 <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
               </svg>
@@ -175,8 +212,6 @@ export default function Register() {
                   </span>
                 )}
               </div>
-
-              {/* Strength bar */}
               {fields.password && (
                 <div style={{ marginTop: 8 }}>
                   <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
@@ -190,14 +225,14 @@ export default function Register() {
               <FieldError msg={touched.password && errors.password ? errors.password : ''} />
             </div>
 
-            <button type="submit" disabled={loading} style={{ width: '100%', padding: '0.7rem', borderRadius: 10, background: loading ? C.accentDim : C.accent, color: '#0F172A', fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 14, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, transition: 'background 200ms', marginTop: 4 }}>
-              {loading ? 'Creating account…' : 'Create account'}
+            <button type="submit" disabled={loading} style={{ width: '100%', padding: '0.75rem', borderRadius: 10, background: loading ? C.accentDim : C.accent, color: '#0F172A', fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 14, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, transition: 'background 200ms', marginTop: 4, boxShadow: '0 0 20px rgba(34,197,94,0.2)' }}>
+              {loading ? 'Creating account…' : 'Create account →'}
             </button>
           </form>
 
-          <p style={{ textAlign: 'center', fontSize: 12, color: C.muted, marginTop: 20 }}>
+          <p style={{ textAlign: 'center', fontSize: 12, color: C.muted, marginTop: 24 }}>
             Already have an account?{' '}
-            <Link to="/login" style={{ color: C.accent, textDecoration: 'none' }}>Sign in</Link>
+            <Link to="/login" style={{ color: C.accent, textDecoration: 'none', fontWeight: 500 }}>Sign in</Link>
           </p>
         </div>
       </div>

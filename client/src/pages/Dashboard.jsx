@@ -31,14 +31,20 @@ function ProjectCard({ project, onDeleteClick }) {
       onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none' }}
     >
       {/* Top */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
         <div style={{ minWidth: 0 }}>
           <h3 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 15, color: C.fg, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{project.name}</h3>
           <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: C.muted, marginTop: 2 }}>/{project.slug}</p>
         </div>
-        {project.isPublic && (
-          <span style={{ flexShrink: 0, fontSize: 10, padding: '0.2rem 0.6rem', borderRadius: 100, border: '1px solid rgba(34,197,94,0.25)', background: 'rgba(34,197,94,0.08)', color: C.accent, fontFamily: "'Space Grotesk', sans-serif", fontWeight: 500 }}>Public</span>
-        )}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5, flexShrink: 0 }}>
+          {project.isPublic && (
+            <span style={{ fontSize: 10, padding: '0.2rem 0.6rem', borderRadius: 100, border: '1px solid rgba(34,197,94,0.25)', background: 'rgba(34,197,94,0.08)', color: C.accent, fontFamily: "'Space Grotesk', sans-serif", fontWeight: 500 }}>Public</span>
+          )}
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, padding: '0.2rem 0.55rem', borderRadius: 100, border: `1px solid rgba(255,255,255,0.08)`, background: 'rgba(255,255,255,0.03)', color: C.muted, fontFamily: "'DM Mono', monospace" }}>
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+            {project.resourceCount ?? 0}
+          </span>
+        </div>
       </div>
 
       {/* Date */}
@@ -122,7 +128,7 @@ export default function Dashboard() {
     try {
       const res = await api.post('/projects', { name: newName.trim() })
       toast(`"${res.data.project.name}" created`, 'success')
-      setProjects(p => [res.data.project, ...p])
+      setProjects(p => [{ ...res.data.project, resourceCount: 0 }, ...p])
       closeModal()
     } catch (err) {
       const msg = err.response?.data?.message || ''
@@ -148,11 +154,21 @@ export default function Dashboard() {
 
   return (
     <div style={{ minHeight: '100vh', background: C.bg, color: C.fg, fontFamily: "'DM Sans', sans-serif" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500&family=DM+Mono:wght@400;500&display=swap'); *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; } input::placeholder { color: #475569; }`}</style>
+      <style>{`
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+        .dash-logout-icon{display:none}
+        @media(max-width:500px){
+          .dash-nav-inner{padding:0 1rem !important}
+          .dash-new-btn-txt{display:none}
+          .dash-logout-txt{display:none}
+          .dash-logout-icon{display:inline}
+          .dash-logout{padding:0.45rem 0.6rem !important;min-width:32px}
+        }
+      `}</style>
 
       {/* NAVBAR */}
       <nav style={{ borderBottom: `1px solid ${C.border}`, padding: '0 clamp(1.5rem, 5vw, 3rem)', height: 64, display: 'flex', alignItems: 'center' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="dash-nav-inner" style={{ maxWidth: 1100, margin: '0 auto', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 28, height: 28, background: C.accent, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#0F172A" strokeWidth="2" strokeLinecap="round">
@@ -163,14 +179,19 @@ export default function Dashboard() {
             <span style={{ fontSize: 10, padding: '0.15rem 0.5rem', borderRadius: 100, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', color: C.accent, fontFamily: "'DM Mono', monospace" }}>beta</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <button onClick={() => setShowModal(true)} style={{ fontSize: 13, padding: '0.45rem 1rem', borderRadius: 8, background: C.accent, color: '#0F172A', fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, border: 'none', cursor: 'pointer', transition: 'background 150ms' }}
+            <button onClick={() => setShowModal(true)} aria-label="New Project" style={{ fontSize: 13, padding: '0.45rem 1rem', borderRadius: 8, background: C.accent, color: '#0F172A', fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, border: 'none', cursor: 'pointer', transition: 'background 150ms' }}
               onMouseEnter={e => e.currentTarget.style.background = C.accentDim}
               onMouseLeave={e => e.currentTarget.style.background = C.accent}
-            >+ New Project</button>
-            <button onClick={logout} style={{ fontSize: 13, padding: '0.45rem 0.85rem', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.muted, cursor: 'pointer', transition: 'color 150ms, border-color 150ms', fontFamily: "'DM Sans', sans-serif" }}
+            >+ <span className="dash-new-btn-txt">New Project</span></button>
+            <button onClick={logout} className="dash-logout" aria-label="Logout" style={{ fontSize: 13, padding: '0.45rem 0.85rem', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.muted, cursor: 'pointer', transition: 'color 150ms, border-color 150ms', fontFamily: "'DM Sans', sans-serif", display:'flex', alignItems:'center', gap:6 }}
               onMouseEnter={e => { e.currentTarget.style.color = C.fg; e.currentTarget.style.borderColor = C.muted }}
               onMouseLeave={e => { e.currentTarget.style.color = C.muted; e.currentTarget.style.borderColor = C.border }}
-            >Logout</button>
+            >
+              <span className="dash-logout-txt">Logout</span>
+              <svg className="dash-logout-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+              </svg>
+            </button>
           </div>
         </div>
       </nav>

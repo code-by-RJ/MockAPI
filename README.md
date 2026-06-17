@@ -1,253 +1,201 @@
 # MockAPI
 
-A powerful platform to create and manage mock APIs without coding. Define schemas, generate fake data, and test your application endpoints in seconds.
+A platform to create and manage mock REST APIs without writing backend code. Define a schema, get working endpoints with fake data instantly.
+
+**Live:** https://mockapi.spacego.online
+
+---
+
+![React](https://img.shields.io/badge/React-18-61DAFB?style=flat&logo=react&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-5-646CFF?style=flat&logo=vite&logoColor=white)
+![TailwindCSS](https://img.shields.io/badge/Tailwind-3-06B6D4?style=flat&logo=tailwindcss&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-20-339933?style=flat&logo=nodedotjs&logoColor=white)
+![Express](https://img.shields.io/badge/Express-4-000000?style=flat&logo=express&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-7-47A248?style=flat&logo=mongodb&logoColor=white)
+![JWT](https://img.shields.io/badge/JWT-auth-000000?style=flat&logo=jsonwebtokens&logoColor=white)
+
+---
 
 ## Features
 
-- **🚀 Quick Setup** - Create mock APIs in minutes, not hours
-- **📊 Schema Builder** - Intuitive visual schema builder with Zod validation
-- **🎲 Fake Data Generator** - Generate realistic fake data with Faker.js
-- **🔐 User Authentication** - Secure JWT-based authentication
-- **📱 Live Preview** - Real-time preview of generated data (killer feature)
-- **🎯 Dynamic Endpoints** - Auto-generated REST endpoints for your resources
-- **📝 Query Support** - Pagination, sorting, and filtering support
-- **💾 Project Management** - Organize multiple projects and resources
+- **Schema Builder** — visual field editor with drag-to-reorder, live JSON preview, type reference
+- **Fake Data Engine** — 10 records auto-seeded on resource create via Faker.js
+- **Dynamic Endpoints** — full REST CRUD auto-generated per resource (public, no auth)
+- **Query Support** — pagination, sorting, and filtering out of the box
+- **Error Simulation** — configurable error rate and response delay per resource
+- **Request Logs** — last 100 requests per project, auto-refresh
+- **Shareable Demo** — public demo page per project, no login required
 
-## Tech Stack
-
-### Frontend
-- **React** - UI library
-- **Vite** - Build tool
-- **Axios** - HTTP client with interceptors
-
-### Backend
-- **Node.js** - Runtime
-- **Express** - Web framework
-- **MongoDB** - Database
-- **Zod** - Schema validation
-- **Faker.js** - Fake data generation
-- **JWT** - Authentication
+---
 
 ## Project Structure
 
 ```
 MockAPI/
-├── client/
+├── client/                  # React + Vite frontend
 │   ├── src/
-│   │   ├── pages/
-│   │   ├── components/
-│   │   ├── features/
-│   │   ├── hooks/
-│   │   └── lib/
+│   │   ├── pages/           # Landing, Login, Register, Dashboard,
+│   │   │                    # ProjectDetail, SchemaBuilder, EndpointViewer,
+│   │   │                    # ShareableDemo, NotFound
+│   │   ├── components/      # ConfirmModal, Skeleton, RequestLogsPanel,
+│   │   │                    # ErrorSimConfig, ProtectedRoute
+│   │   ├── context/         # ToastContext
+│   │   ├── contexts/        # AuthContext
+│   │   ├── hooks/           # useAuth, useProjects
+│   │   └── lib/             # axios (JWT interceptor)
 │   └── package.json
-├── server/
-│   ├── routes/
-│   ├── controllers/
-│   ├── services/
-│   ├── middlewares/
-│   ├── models/
+├── server/                  # Node.js + Express backend
+│   ├── controllers/         # authController, resourceController
+│   ├── middlewares/         # auth, pipeline, errorHandler
+│   ├── models/              # User, Project, Resource, DynamicData, RequestLog
+│   ├── routes/              # auth, projects, resources, engine
+│   ├── services/            # schemaService, fakerService, cacheService, queryService
 │   ├── index.js
 │   └── package.json
-├── .env
-├── .env.example
 └── README.md
 ```
+
+---
 
 ## Getting Started
 
 ### Prerequisites
-- Node.js 16+
-- MongoDB 4.4+
-- npm or yarn
+
+- Node.js 18+
+- MongoDB 6+ (local) or MongoDB Atlas
 
 ### Installation
 
-1. **Clone the repository**
 ```bash
-git clone <repository-url>
-cd mockapi
+# Clone
+git clone https://github.com/code-by-RJ/MockAPI.git
+cd MockAPI
+
+# Install server deps
+cd server && npm install
+
+# Install client deps
+cd ../client && npm install
 ```
 
-2. **Install server dependencies**
-```bash
-cd server
-npm install
-```
+### Environment Variables
 
-3. **Install client dependencies**
-```bash
-cd ../client
-npm install
-```
-
-4. **Setup environment variables**
-```bash
-# In server root
-cp .env.example .env
-# Edit .env with your configuration
-```
-
-### Running the Application
-
-1. **Start MongoDB**
-```bash
-mongod
-```
-
-2. **Start the server**
-```bash
-cd server
-npm run dev
-```
-
-3. **Start the client**
-```bash
-cd client
-npm run dev
-```
-
-The application will be available at `http://localhost:5173`
-
-## API Endpoints
-
-### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login user
-
-### Projects
-- `GET /api/projects` - Get all projects
-- `POST /api/projects` - Create new project
-- `GET /api/projects/:id` - Get project details
-- `PUT /api/projects/:id` - Update project
-- `DELETE /api/projects/:id` - Delete project
-
-### Resources
-- `GET /api/resources/project/:projectId` - Get all resources
-- `POST /api/resources/project/:projectId` - Create resource
-- `GET /api/resources/:id` - Get resource details
-- `PUT /api/resources/:id` - Update resource
-- `DELETE /api/resources/:id` - Delete resource
-
-### Dynamic Endpoints
-- `GET/POST/PUT/DELETE /api/engine/:projectId/:resourceId` - Dynamic endpoint handler
-
-## Usage Example
-
-1. **Create a User Account**
-```bash
-POST /api/auth/register
-{
-  "name": "John Doe",
-  "email": "john@example.com",
-  "password": "password123"
-}
-```
-
-2. **Create a Project**
-```bash
-POST /api/projects
-{
-  "name": "User API",
-  "description": "Mock user management API"
-}
-```
-
-3. **Create a Resource with Schema**
-```bash
-POST /api/resources/project/{projectId}
-{
-  "name": "users",
-  "endpoint": "/users",
-  "responseType": "array",
-  "schema": {
-    "fields": [
-      { "name": "id", "type": "number", "required": true },
-      { "name": "name", "type": "string", "required": true },
-      { "name": "email", "type": "email", "required": true },
-      { "name": "active", "type": "boolean", "required": false }
-    ]
-  }
-}
-```
-
-4. **Test the Dynamic Endpoint**
-```bash
-GET /api/engine/{projectId}/users?page=1&limit=10&sort=name&order=asc
-```
-
-## Environment Variables
+Create `server/.env`:
 
 ```env
-PORT=5000                                      # Server port
-NODE_ENV=development                           # Environment
-MONGODB_URI=mongodb://localhost:27017/mockapi # MongoDB connection
-JWT_SECRET=your_secret_key                    # JWT signing key
-CORS_ORIGIN=http://localhost:5173             # Frontend origin
-FAKER_SEED=12345                              # Faker seed for consistency
+PORT=8000
+NODE_ENV=development
+MONGODB_URI=mongodb://localhost:27017/mockapi
+JWT_SECRET=your_jwt_secret_here
+CLIENT_URL=http://localhost:5173
 ```
 
-## Development
+> `JWT_SECRET` is required in all environments. `MONGODB_URI` and `CLIENT_URL` are required in production — server will exit on start if missing.
 
-### Scripts
+### Running Locally
 
-Server:
 ```bash
-npm run dev          # Start dev server with nodemon
-npm start            # Start production server
-npm test             # Run tests
+# Terminal 1 — backend
+cd server && npm run dev
+
+# Terminal 2 — frontend
+cd client && npm run dev
 ```
 
-Client:
-```bash
-npm run dev          # Start dev server
-npm run build        # Build for production
-npm preview          # Preview production build
-```
-
-## Features Breakdown
-
-### Schema Builder
-- Visual interface to define data schemas
-- Support for multiple field types (string, number, boolean, array, object)
-- Real-time validation with Zod
-- Field customization and validation rules
-
-### Live Preview
-- Real-time preview of generated fake data
-- Instant updates as schema changes
-- JSON format display
-- Copy-to-clipboard functionality
-
-### Engine Pipeline (7-step process)
-1. Validate request
-2. Load schema
-3. Parse query parameters
-4. Apply filters
-5. Generate/fetch data
-6. Format response
-7. Send response
-
-### Caching
-- In-memory project cache for performance
-- Automatic cache invalidation
-- Configurable cache TTL
-
-## Contributing
-
-Contributions are welcome! Please follow these steps:
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
-
-## License
-
-MIT License - feel free to use this project for personal or commercial use.
-
-## Support
-
-For issues, questions, or suggestions, please open an issue on GitHub or contact the maintainers.
+App available at `http://localhost:5173`
 
 ---
 
-**Happy Mocking! 🎉**
+## API Reference
+
+### Auth
+
+```
+POST   /api/auth/register     { name, email, password }
+POST   /api/auth/login        { email, password }
+GET    /api/auth/me           Authorization: Bearer <token>
+```
+
+### Projects  *(requires auth)*
+
+```
+GET    /api/projects
+POST   /api/projects          { name, isPublic? }
+DELETE /api/projects/:slug
+```
+
+### Resources  *(requires auth)*
+
+```
+GET    /api/projects/:slug/resources
+POST   /api/projects/:slug/resources    { name, schema? }
+PUT    /api/projects/:slug/resources/:name
+DELETE /api/projects/:slug/resources/:name
+```
+
+### Dynamic Engine  *(public — no auth)*
+
+```
+GET    /api/:slug/:resource              ?page=1&limit=10&sort=-createdAt&filter=name:john
+GET    /api/:slug/:resource/:id
+POST   /api/:slug/:resource             { ...fields }
+PUT    /api/:slug/:resource/:id         { ...fields }
+DELETE /api/:slug/:resource/:id
+```
+
+**Rate limit:** 100 requests / 15 min per IP.
+
+---
+
+## Production Deployment
+
+### Backend — Render
+
+| Setting | Value |
+|---|---|
+| Build command | `cd server && npm install` |
+| Start command | `node index.js` |
+| Root directory | `server` |
+
+**Env vars on Render:**
+
+```
+NODE_ENV=production
+MONGODB_URI=<atlas-connection-string>
+JWT_SECRET=<strong-random-secret>
+CLIENT_URL=https://mockapi.spacego.online
+PORT=8000
+```
+
+### Frontend — Vercel
+
+| Setting | Value |
+|---|---|
+| Framework | Vite |
+| Root directory | `client` |
+| Build command | `npm run build` |
+| Output directory | `dist` |
+
+**Env var on Vercel:**
+
+```
+VITE_API_URL=https://<your-render-url>.onrender.com/api
+```
+
+### DNS — Hostinger
+
+```
+CNAME  mockapi  →  cname.vercel-dns.com
+```
+
+---
+
+## Screenshots
+
+> Coming soon after deploy.
+
+---
+
+## License
+
+MIT

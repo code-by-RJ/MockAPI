@@ -6,7 +6,7 @@ const CONFIG = {
   success: { icon: '✓', bg: 'bg-emerald-500/90 border-emerald-400/30' },
   error:   { icon: '✕', bg: 'bg-red-500/90 border-red-400/30' },
   info:    { icon: 'ℹ', bg: 'bg-blue-500/90 border-blue-400/30' },
-  copy:    { icon: '⎘', bg: 'bg-violet-500/90 border-violet-400/30' }
+  copy:    { icon: '⎘', bg: 'bg-sky-500/90 border-sky-400/30' }
 }
 
 export function ToastProvider({ children }) {

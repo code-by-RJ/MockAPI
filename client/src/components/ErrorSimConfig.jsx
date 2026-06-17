@@ -2,10 +2,16 @@ import { useState } from 'react'
 import api from '../lib/axios'
 import { useToast } from '../context/ToastContext'
 
+const C = {
+  surface:"#1E293B", surface2:"#272F42", border:"#334155",
+  fg:"#F8FAFC", muted:"#94A3B8", accent:"#22C55E", accentDim:"#16A34A",
+  red:"#EF4444", yellow:"#FBBF24", orange:"#F97316",
+}
+
 export default function ErrorSimConfig({ slug, resourceName, initialErrorRate = 0, initialDelay = 0 }) {
-  const { toast } = useToast()
-  const [errorRate, setErrorRate] = useState(initialErrorRate)
-  const [delay, setDelay]         = useState(initialDelay)
+  const { toast }   = useToast()
+  const [errorRate, setErrorRate] = useState(initialErrorRate) // float 0–1
+  const [delay, setDelay]         = useState(initialDelay)     // ms 0–5000
   const [saving, setSaving]       = useState(false)
 
   const save = async () => {
@@ -13,117 +19,85 @@ export default function ErrorSimConfig({ slug, resourceName, initialErrorRate = 
     try {
       await api.patch(`/projects/${slug}/resources/${resourceName}/config`, { errorRate, delay })
       toast('Config saved', 'success')
-    } catch {
-      toast('Failed to save config', 'error')
-    } finally {
-      setSaving(false)
-    }
+    } catch { toast('Failed to save config', 'error') }
+    finally { setSaving(false) }
   }
 
-  const errorPct   = Math.round(errorRate * 100)
-  const errorColor = errorPct === 0 ? 'text-white/30' : errorPct < 30 ? 'text-amber-400' : 'text-red-400'
+  const errPct   = Math.round(errorRate * 100)
+  const delayPct = (delay / 5000) * 100
+  const isActive = errorRate > 0 || delay > 0
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.03] overflow-hidden">
+    <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:14, overflow:'hidden', maxWidth:'100%' }}>
+      <style>{`
+        .sim-range{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:4px;outline:none;cursor:pointer;display:block}
+        .sim-range::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,0.15);box-shadow:0 2px 6px rgba(0,0,0,0.4);cursor:pointer;margin-top:-7px}
+        .sim-range.err::-webkit-slider-thumb{background:${C.red}}
+        .sim-range.dly::-webkit-slider-thumb{background:${C.yellow}}
+        .sim-range::-webkit-slider-runnable-track{height:4px;border-radius:4px}
+      `}</style>
+
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-white">Error Simulation</span>
-          {(errorRate > 0 || delay > 0) && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/25 text-amber-400">
-              Active
-            </span>
-          )}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0.85rem 1.25rem', borderBottom:`1px solid ${C.border}`, flexWrap:'wrap', gap:8 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+          <h3 style={{ fontFamily:"'Space Grotesk',sans-serif", fontSize:14, fontWeight:600, color:C.fg }}>Error Simulation</h3>
+          {isActive && <span style={{ fontSize:10, padding:'0.2rem 0.55rem', borderRadius:100, background:'rgba(249,115,22,0.12)', border:'1px solid rgba(249,115,22,0.25)', color:C.orange, fontWeight:600 }}>Active</span>}
         </div>
-        <button
-          onClick={save}
-          disabled={saving}
-          className="text-xs px-3 py-1.5 rounded-lg bg-violet-500/20 border border-violet-500/30
-            text-violet-300 hover:bg-violet-500/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          {saving ? 'Saving…' : 'Save Config'}
+        <button onClick={save} disabled={saving} style={{ fontSize:12, padding:'0.35rem 0.9rem', borderRadius:8, background:saving?C.accentDim:C.accent, color:'#0F172A', fontFamily:"'Space Grotesk',sans-serif", fontWeight:600, border:'none', cursor:saving?'not-allowed':'pointer', opacity:saving?0.7:1 }}>
+          {saving?'Saving…':'Save Config'}
         </button>
       </div>
 
-      <div className="p-4 space-y-5">
+      <div style={{ padding:'1.25rem', display:'flex', flexDirection:'column', gap:24 }}>
 
-        {/* Error Rate slider */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
+        {/* Error Rate */}
+        <div>
+          <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:10 }}>
             <div>
-              <p className="text-xs font-medium text-white/70">Error Rate</p>
-              <p className="text-[10px] text-white/30 mt-0.5">
-                {errorPct === 0
-                  ? 'All requests succeed'
-                  : `${errorPct}% of requests → 500 error`}
-              </p>
+              <div style={{ fontFamily:"'Space Grotesk',sans-serif", fontSize:13, fontWeight:600, color:C.fg, marginBottom:2 }}>Error Rate</div>
+              <div style={{ fontSize:11, color:C.muted }}>{errPct===0?'All requests succeed':`${errPct}% of requests → 500 error`}</div>
             </div>
-            <span className={`text-lg font-bold font-mono ${errorColor}`}>
-              {errorPct}%
-            </span>
+            <div style={{ fontFamily:"'Space Grotesk',sans-serif", fontSize:20, fontWeight:700, color:errPct>0?C.red:C.muted, flexShrink:0, minWidth:52, textAlign:'right' }}>{errPct}%</div>
           </div>
-          <div className="relative">
-            <input
-              type="range" min={0} max={1} step={0.05}
-              value={errorRate}
-              onChange={e => setErrorRate(Number(e.target.value))}
-              className="w-full h-1.5 rounded-full appearance-none cursor-pointer
-                bg-white/10 accent-red-500"
-            />
-            {/* Track fill visual hint */}
-            <div
-              className="absolute top-0 left-0 h-1.5 rounded-full bg-red-500/50 pointer-events-none mt-[1px]"
-              style={{ width: `${errorPct}%`, transition: 'width 0.1s' }}
-            />
-          </div>
-          <div className="flex justify-between text-[9px] text-white/20 font-mono px-0.5">
-            <span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>
+          <input
+            type="range" min={0} max={1} step={0.05}
+            value={errorRate}
+            onChange={e=>setErrorRate(Number(e.target.value))}
+            className="sim-range err"
+            style={{ background:`linear-gradient(to right,${errPct>0?C.red:C.border} 0%,${errPct>0?C.red:C.border} ${errPct}%,${C.surface2} ${errPct}%,${C.surface2} 100%)` }}
+          />
+          <div style={{ display:'flex', justifyContent:'space-between', marginTop:6, overflow:'hidden' }}>
+            {['0%','25%','50%','75%','100%'].map(t=><span key={t} style={{ fontSize:9, color:'rgba(255,255,255,0.2)', fontFamily:"'DM Mono',monospace" }}>{t}</span>)}
           </div>
         </div>
 
-        {/* Divider */}
-        <div className="border-t border-white/[0.06]" />
+        <div style={{ borderTop:`1px solid ${C.border}` }}/>
 
-        {/* Delay slider */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
+        {/* Delay */}
+        <div>
+          <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:10 }}>
             <div>
-              <p className="text-xs font-medium text-white/70">Response Delay</p>
-              <p className="text-[10px] text-white/30 mt-0.5">
-                {delay === 0
-                  ? 'No artificial delay'
-                  : delay < 1000
-                    ? `${delay}ms added to every response`
-                    : `${(delay / 1000).toFixed(1)}s added to every response`}
-              </p>
+              <div style={{ fontFamily:"'Space Grotesk',sans-serif", fontSize:13, fontWeight:600, color:C.fg, marginBottom:2 }}>Response Delay</div>
+              <div style={{ fontSize:11, color:C.muted }}>{delay===0?'No artificial delay':delay<1000?`${delay}ms added to every response`:`${(delay/1000).toFixed(1)}s added to every response`}</div>
             </div>
-            <span className={`text-lg font-bold font-mono ${delay === 0 ? 'text-white/30' : 'text-amber-400'}`}>
-              {delay < 1000 ? `${delay}ms` : `${(delay / 1000).toFixed(1)}s`}
-            </span>
+            <div style={{ fontFamily:"'Space Grotesk',sans-serif", fontSize:20, fontWeight:700, color:delay>0?C.yellow:C.muted, flexShrink:0, minWidth:52, textAlign:'right' }}>{delay<1000?`${delay}ms`:`${(delay/1000).toFixed(1)}s`}</div>
           </div>
-          <div className="relative">
-            <input
-              type="range" min={0} max={5000} step={100}
-              value={delay}
-              onChange={e => setDelay(Number(e.target.value))}
-              className="w-full h-1.5 rounded-full appearance-none cursor-pointer
-                bg-white/10 accent-amber-500"
-            />
-            <div
-              className="absolute top-0 left-0 h-1.5 rounded-full bg-amber-500/50 pointer-events-none mt-[1px]"
-              style={{ width: `${(delay / 5000) * 100}%`, transition: 'width 0.1s' }}
-            />
-          </div>
-          <div className="flex justify-between text-[9px] text-white/20 font-mono px-0.5">
-            <span>0</span><span>1s</span><span>2s</span><span>3s</span><span>4s</span><span>5s</span>
+          <input
+            type="range" min={0} max={5000} step={100}
+            value={delay}
+            onChange={e=>setDelay(Number(e.target.value))}
+            className="sim-range dly"
+            style={{ background:`linear-gradient(to right,${delay>0?C.yellow:C.border} 0%,${delay>0?C.yellow:C.border} ${delayPct}%,${C.surface2} ${delayPct}%,${C.surface2} 100%)` }}
+          />
+          <div style={{ display:'flex', justifyContent:'space-between', marginTop:6, overflow:'hidden' }}>
+            {['0','1s','2s','3s','4s','5s'].map(t=><span key={t} style={{ fontSize:9, color:'rgba(255,255,255,0.2)', fontFamily:"'DM Mono',monospace" }}>{t}</span>)}
           </div>
         </div>
 
-        {/* Warning when both are active */}
         {errorRate > 0 && delay > 0 && (
-          <p className="text-[10px] text-amber-400/60 bg-amber-500/5 border border-amber-500/15 rounded-lg px-3 py-2">
+          <div style={{ padding:'0.6rem 0.85rem', borderRadius:8, background:'rgba(249,115,22,0.06)', border:'1px solid rgba(249,115,22,0.2)', fontSize:11, color:C.orange, display:'flex', alignItems:'center', gap:6 }}>
             ⚠ Both active — errored requests still wait {delay}ms before failing
-          </p>
+          </div>
         )}
       </div>
     </div>
