@@ -75,6 +75,7 @@ export default function Dashboard() {
   const { toast } = useToast()
 
   const [projects, setProjects]   = useState([])
+  const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading]     = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [newName, setNewName]     = useState('')
@@ -132,7 +133,9 @@ export default function Dashboard() {
       closeModal()
     } catch (err) {
       const msg = err.response?.data?.message || ''
-      if (msg.toLowerCase().includes('slug') || msg.toLowerCase().includes('exists')) {
+      if (msg.toLowerCase().includes('limit')) {
+        setNameError(msg)
+      } else if (msg.toLowerCase().includes('slug') || msg.toLowerCase().includes('exists')) {
         setNameError('A project with a similar name already exists.')
       } else { toast(msg || 'Failed to create project', 'error') }
     } finally { setCreating(false) }
@@ -207,6 +210,30 @@ export default function Dashboard() {
           )}
         </div>
 
+        {/* Search — only when projects exist */}
+        {!loading && projects.length > 0 && (
+          <div style={{ marginBottom: 20, position: 'relative', maxWidth: 320 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="2" strokeLinecap="round" aria-hidden="true"
+              style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input
+              type="text"
+              placeholder="Filter projects…"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              aria-label="Filter projects by name"
+              style={{ width: '100%', background: 'rgba(0,0,0,0.3)', border: `1px solid ${searchQuery ? 'rgba(34,197,94,0.3)' : C.border}`, borderRadius: 10, padding: '0.5rem 1rem 0.5rem 2.25rem', fontSize: 13, color: C.fg, fontFamily: "'DM Sans', sans-serif", outline: 'none', transition: 'border-color 150ms', boxSizing: 'border-box' }}
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} aria-label="Clear filter"
+                style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: C.muted, cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 2 }}>
+                ✕
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Grid */}
         {loading ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
@@ -239,11 +266,26 @@ export default function Dashboard() {
               onMouseLeave={e => e.currentTarget.style.background = C.accent}
             >+ Create your first project</button>
           </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
-            {projects.map(p => <ProjectCard key={p.slug} project={p} onDeleteClick={handleDeleteClick} />)}
-          </div>
-        )}
+        ) : (() => {
+          const q = searchQuery.trim().toLowerCase()
+          const filtered = q ? projects.filter(p => p.name.toLowerCase().includes(q) || p.slug.includes(q)) : projects
+          if (filtered.length === 0) {
+            return (
+              <div style={{ padding: '4rem 2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', borderRadius: 16, border: `1px dashed ${C.border}`, background: 'rgba(255,255,255,0.01)' }}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="1.5" strokeLinecap="round" aria-hidden="true" style={{ marginBottom: 14, opacity: 0.5 }}>
+                  <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                </svg>
+                <p style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.4)', fontFamily: "'Space Grotesk', sans-serif", marginBottom: 6 }}>No projects match "{searchQuery}"</p>
+                <button onClick={() => setSearchQuery('')} style={{ fontSize: 12, color: C.accent, background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}>Clear filter</button>
+              </div>
+            )
+          }
+          return (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+              {filtered.map(p => <ProjectCard key={p.slug} project={p} onDeleteClick={handleDeleteClick} />)}
+            </div>
+          )
+        })()}
       </div>
 
       {/* CREATE MODAL */}

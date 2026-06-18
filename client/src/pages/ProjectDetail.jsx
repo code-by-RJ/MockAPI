@@ -10,7 +10,7 @@ const C = { bg:"#0F172A",surface:"#1E293B",surface2:"#272F42",border:"#334155",f
 
 const FONTS = '' // fonts loaded globally via index.css
 
-const ANIM  = `@keyframes pageIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}.page-enter{animation:pageIn 0.35s ease forwards}
+const ANIM  = `@keyframes pageIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}.page-enter{animation:pageIn 0.35s ease forwards}@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
   @media(max-width:600px){
     .pd-nav{padding:0 1rem !important;height:auto !important;flex-wrap:wrap;gap:8px;padding-top:0.75rem !important;padding-bottom:0.75rem !important}
     .pd-nav-left{gap:6px !important;flex-wrap:wrap}
@@ -39,8 +39,32 @@ export default function ProjectDetail() {
   const [confirmOpen, setConfirmOpen]           = useState(false)
   const [resourceToDelete, setResourceToDelete] = useState(null)
   const [deleting, setDeleting]                 = useState(false)
+  // Priority 4
+  const [recordCounts, setRecordCounts] = useState({})  // { [resourceName]: number }
+  const [seeding, setSeeding]           = useState({})   // { [resourceName]: boolean }
 
   const BASE_URL = `${import.meta.env.VITE_API_URL || window.location.origin}/api/${slug}`
+
+  // Fetch record counts from engine API (public, no auth needed)
+  const fetchRecordCounts = useCallback(async (resourceList) => {
+    if (!resourceList || resourceList.length === 0) return
+    const results = await Promise.allSettled(
+      resourceList.map(async (r) => {
+        try {
+          const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/${slug}/${r.name}?limit=1`)
+          const data = await res.json()
+          return { name: r.name, total: data.total ?? 0 }
+        } catch {
+          return { name: r.name, total: 0 }
+        }
+      })
+    )
+    const counts = {}
+    results.forEach(result => {
+      if (result.status === 'fulfilled') counts[result.value.name] = result.value.total
+    })
+    setRecordCounts(counts)
+  }, [slug])
 
   const fetchData = useCallback(async () => {
     try {
@@ -50,10 +74,13 @@ export default function ProjectDetail() {
       ])
       const found = projRes.data.data?.find(p => p.slug === slug)
       setProject(found || null)
-      setResources(resRes.data.data || [])
+      const resList = resRes.data.data || []
+      setResources(resList)
+      // Fetch record counts in parallel (non-blocking)
+      fetchRecordCounts(resList)
     } catch { toast('Failed to load project', 'error') }
     finally { setLoading(false) }
-  }, [slug, toast])
+  }, [slug, toast, fetchRecordCounts])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -103,7 +130,9 @@ export default function ProjectDetail() {
       closeModal(); fetchData()
     } catch (err) {
       const msg = err.response?.data?.message || ''
-      if (msg.toLowerCase().includes('exists') || msg.toLowerCase().includes('duplicate')) {
+      if (msg.toLowerCase().includes('limit')) {
+        toast(msg, 'error'); closeModal()
+      } else if (msg.toLowerCase().includes('exists') || msg.toLowerCase().includes('duplicate')) {
         setNameError(`"${newName.toLowerCase().trim()}" already exists.`)
       } else { toast(msg || 'Failed to create resource', 'error') }
     } finally { setCreating(false) }
@@ -118,9 +147,30 @@ export default function ProjectDetail() {
       await api.delete(`/projects/${slug}/resources/${resourceToDelete.name}`)
       toast(`"${resourceToDelete.name}" deleted`, 'success')
       setResources(p => p.filter(r => r.name !== resourceToDelete.name))
+      setRecordCounts(c => { const n = {...c}; delete n[resourceToDelete.name]; return n })
       setConfirmOpen(false); setResourceToDelete(null)
     } catch { toast('Failed to delete resource', 'error') }
     finally { setDeleting(false) }
+  }
+
+  // Priority 4 — re-seed: replace all records with 10 fresh faker records
+  const handleReseed = async (resourceName) => {
+    setSeeding(s => ({ ...s, [resourceName]: true }))
+    try {
+      await api.post(`/projects/${slug}/resources/${resourceName}/seed`)
+      toast(`"${resourceName}" re-seeded with 10 fresh records`, 'success')
+      // Refresh count for this resource
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/${slug}/${resourceName}?limit=1`)
+        const data = await res.json()
+        setRecordCounts(c => ({ ...c, [resourceName]: data.total ?? 10 }))
+      } catch { setRecordCounts(c => ({ ...c, [resourceName]: 10 })) }
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Failed to re-seed'
+      toast(msg, 'error')
+    } finally {
+      setSeeding(s => ({ ...s, [resourceName]: false }))
+    }
   }
 
   return (
@@ -173,9 +223,9 @@ export default function ProjectDetail() {
           <div style={{ fontSize:11, fontWeight:600, color:C.muted, letterSpacing:'0.08em', textTransform:'uppercase', fontFamily:"'Space Grotesk',sans-serif", marginBottom:12 }}>Resources</div>
           <div style={{ border:`1px solid ${C.border}`, borderRadius:12, overflow:'hidden' }}><div style={{ overflowX:'auto' }}>
             {/* Head */}
-            <div style={{ display:'flex', alignItems:'center', gap:16, padding:'0.6rem 1rem', background:'rgba(255,255,255,0.02)', borderBottom:`1px solid ${C.border}`, minWidth:520 }}>
-              {['Name','Endpoint','Fields','Actions'].map((h,i)=>(
-                <span key={h} style={{ fontSize:11, fontWeight:500, color:'rgba(255,255,255,0.3)', width:i===0?144:i===2?64:i===3?112:'auto', flex:i===1?1:undefined, textAlign:i===2||i===3?'center':undefined, fontFamily:"'Space Grotesk',sans-serif" }}>{h}</span>
+            <div style={{ display:'flex', alignItems:'center', gap:16, padding:'0.6rem 1rem', background:'rgba(255,255,255,0.02)', borderBottom:`1px solid ${C.border}`, minWidth:580 }}>
+              {['Name','Endpoint','Fields','Records','Actions'].map((h,i)=>(
+                <span key={h} style={{ fontSize:11, fontWeight:500, color:'rgba(255,255,255,0.3)', width:i===0?144:i===2?56:i===3?70:i===4?136:'auto', flex:i===1?1:undefined, textAlign:i===2||i===3||i===4?'center':undefined, fontFamily:"'Space Grotesk',sans-serif" }}>{h}</span>
               ))}
             </div>
 
@@ -194,14 +244,34 @@ export default function ProjectDetail() {
               </div>
             ) : (
               resources.map(r => (
-                <div key={r.name} className="row-hover" style={{ display:'flex', alignItems:'center', gap:16, padding:'0.75rem 1rem', borderBottom:`1px solid rgba(255,255,255,0.04)`, transition:'background 150ms', minWidth:520 }}>
+                <div key={r.name} className="row-hover" style={{ display:'flex', alignItems:'center', gap:16, padding:'0.75rem 1rem', borderBottom:`1px solid rgba(255,255,255,0.04)`, transition:'background 150ms', minWidth:580 }}>
                   <span style={{ width:144, fontFamily:"'DM Mono',monospace", fontSize:13, color:C.fg, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{r.name}</span>
                   <span style={{ flex:1, fontFamily:"'DM Mono',monospace", fontSize:11, color:'rgba(255,255,255,0.3)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{BASE_URL}/{r.name}</span>
-                  <span style={{ width:64, textAlign:'center', fontSize:12, color:'rgba(255,255,255,0.4)' }}>{r.schema?.length ?? 0}</span>
-                  <div style={{ width:112, display:'flex', alignItems:'center', justifyContent:'flex-end', gap:6 }}>
+                  <span style={{ width:56, textAlign:'center', fontSize:12, color:'rgba(255,255,255,0.4)' }}>{r.schema?.length ?? 0}</span>
+                  {/* Records count — fetched from engine API */}
+                  <span style={{ width:70, textAlign:'center', fontSize:12, fontFamily:"'DM Mono',monospace", color: recordCounts[r.name] !== undefined ? C.accent : 'rgba(255,255,255,0.2)' }}>
+                    {recordCounts[r.name] !== undefined ? recordCounts[r.name] : '—'}
+                  </span>
+                  <div style={{ width:136, display:'flex', alignItems:'center', justifyContent:'flex-end', gap:5 }}>
                     <Link to={`/project/${slug}/resource/${r.name}`} className="action-btn">Edit</Link>
-                    <Link to={`/project/${slug}/resource/${r.name}/endpoints`} className="action-btn">Endpoints</Link>
-                    <button onClick={()=>handleDeleteClick(r)} className="del-btn">✕</button>
+                    <Link to={`/project/${slug}/resource/${r.name}/endpoints`} className="action-btn">API</Link>
+                    {/* Re-seed button */}
+                    <button
+                      onClick={() => handleReseed(r.name)}
+                      disabled={seeding[r.name]}
+                      aria-label={`Re-seed ${r.name}`}
+                      title={r.schema?.length > 0 ? 'Re-seed with 10 fresh records' : 'Add schema fields first'}
+                      style={{ display:'inline-flex', alignItems:'center', padding:'0.25rem 0.45rem', borderRadius:8, border:`1px solid ${C.border}`, background:'transparent', color: seeding[r.name] ? C.accent : C.muted, cursor: r.schema?.length > 0 ? (seeding[r.name] ? 'not-allowed' : 'pointer') : 'default', fontSize:11, transition:'color 150ms,border-color 150ms', opacity: r.schema?.length === 0 ? 0.35 : 1 }}
+                      onMouseEnter={e => { if (r.schema?.length > 0 && !seeding[r.name]) { e.currentTarget.style.color = C.accent; e.currentTarget.style.borderColor = 'rgba(34,197,94,0.4)' } }}
+                      onMouseLeave={e => { if (!seeding[r.name]) { e.currentTarget.style.color = C.muted; e.currentTarget.style.borderColor = C.border } }}
+                    >
+                      {seeding[r.name] ? (
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true" style={{ animation:'spin 0.8s linear infinite' }}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                      ) : (
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+                      )}
+                    </button>
+                    <button onClick={()=>handleDeleteClick(r)} className="del-btn" aria-label={`Delete ${r.name}`}>✕</button>
                   </div>
                 </div>
               ))

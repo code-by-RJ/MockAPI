@@ -4,6 +4,7 @@ import compression  from 'compression'
 import dotenv       from 'dotenv'
 import mongoose     from 'mongoose'
 import rateLimit    from 'express-rate-limit'
+import jwt          from 'jsonwebtoken'
 import { errorHandler } from './middlewares/errorHandler.js'
 
 import authRoutes     from './routes/auth.js'
@@ -37,12 +38,56 @@ const PORT = parseInt(process.env.PORT) || 8000
 app.set('trust proxy', 1)
 
 // ── Rate Limiters ───────────────────────────────────────────────────
+
+// 15-min burst limiter — already in place
 const engineLimiter = rateLimit({
-  windowMs:       15 * 60 * 1000,  // 15 minutes
-  max:            100,
+  windowMs:        15 * 60 * 1000,  // 15 minutes
+  max:             100,
   standardHeaders: true,
-  legacyHeaders:  false,
-  message:        { success: false, error: 'Too many requests. Try again in 15 minutes.' },
+  legacyHeaders:   false,
+  message:         { success: false, error: 'Too many requests. Try again in 15 minutes.' },
+})
+
+// Daily limiter — keyed by userId (JWT) or IP fallback
+// Authenticated users: 500 req/day  |  Unauthenticated (IP): 300 req/day
+const engineDailyLimiter = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000, // 24 hours
+
+  // Soft-decode JWT — no blocking, just for key + limit determination
+  keyGenerator: (req) => {
+    try {
+      const auth = req.headers.authorization
+      if (auth?.startsWith('Bearer ')) {
+        const decoded = jwt.verify(auth.split(' ')[1], process.env.JWT_SECRET)
+        return `user:${decoded.userId}`
+      }
+    } catch {}
+    return `ip:${req.ip}`
+  },
+
+  max: (req) => {
+    try {
+      const auth = req.headers.authorization
+      if (auth?.startsWith('Bearer ')) {
+        jwt.verify(auth.split(' ')[1], process.env.JWT_SECRET)
+        return 1000  // authenticated user
+      }
+    } catch {}
+    return 300      // unauthenticated / IP fallback
+  },
+
+  standardHeaders: true,   // sends RateLimit-* headers to client
+  legacyHeaders:   false,
+
+  handler: (_req, res, _next, options) => {
+    res.status(429).json({
+      success:    false,
+      error:      'Daily request limit reached. Try again tomorrow.',
+      code:       429,
+      limit:      options.max,
+      resetAt:    new Date(Date.now() + options.windowMs).toISOString(),
+    })
+  },
 })
 
 // ── Middleware ──────────────────────────────────────────────────────
@@ -70,7 +115,7 @@ app.get('/api/health', (_req, res) => res.json({ success: true, status: 'ok' }))
 app.use('/api/auth',                     authRoutes)
 app.use('/api/projects',                 projectRoutes)
 app.use('/api/projects/:slug/resources', resourceRoutes)
-app.use('/api',                          engineLimiter, engineRoutes)  // LAST — wildcard :slug/:resource
+app.use('/api',                          engineDailyLimiter, engineLimiter, engineRoutes)  // LAST — wildcard :slug/:resource
 
 // ── Error Handling ───────────────────────────────────────────────────
 app.use((_req, res) => res.status(404).json({ success: false, error: 'Route not found' }))

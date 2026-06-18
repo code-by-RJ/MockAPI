@@ -6,7 +6,7 @@ import { FieldRowSkeleton } from '../components/Skeleton'
 import ErrorSimConfig      from '../components/ErrorSimConfig'
 
 const C = { bg:"#0F172A",surface:"#1E293B",surface2:"#272F42",border:"#334155",fg:"#F8FAFC",muted:"#94A3B8",accent:"#22C55E",accentDim:"#16A34A",red:"#EF4444",yellow:"#FBBF24",blue:"#60A5FA" }
-const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500&family=DM+Mono:wght@400;500&display=swap');`
+const FONTS = '' // fonts loaded globally via index.css
 const ANIM  = `@keyframes pageIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}.page-enter{animation:pageIn 0.35s ease forwards}`
 
 const TYPES = ['string','number','boolean','email','uuid','date','avatar','enum']
@@ -77,6 +77,26 @@ export default function SchemaBuilder() {
     setTimeout(() => setPreviewCopied(false), 2000)
   }
 
+  // Priority 4 — export schema as .json file (client-side only)
+  const exportSchema = () => {
+    const payload = {
+      resource: name,
+      project:  slug,
+      schema:   fields,
+      exportedAt: new Date().toISOString()
+    }
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    a.href     = url
+    a.download = `${slug}-${name}-schema.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    setTimeout(() => URL.revokeObjectURL(url), 100)
+    toast('Schema exported', 'success')
+  }
+
   const preview = buildPreview(fields)
 
   const onDragStart = (e, i) => {
@@ -119,6 +139,13 @@ export default function SchemaBuilder() {
           </nav>
           <div className="sb-header-actions" style={{ display:'flex', alignItems:'center', gap:10 }}>
             <Link to={`/project/${slug}/resource/${name}/endpoints`} style={{ fontSize:12, padding:'0.35rem 0.85rem', borderRadius:8, border:`1px solid ${C.border}`, color:C.muted, textDecoration:'none', transition:'color 150ms,border-color 150ms' }} onMouseEnter={e=>{e.currentTarget.style.color=C.fg;e.currentTarget.style.borderColor=C.muted}} onMouseLeave={e=>{e.currentTarget.style.color=C.muted;e.currentTarget.style.borderColor=C.border}}>View Endpoints →</Link>
+            {/* Priority 4 — Export schema as JSON */}
+            <button onClick={exportSchema} disabled={fields.length === 0} title="Download schema as JSON" aria-label="Export schema as JSON" style={{ fontSize:12, padding:'0.35rem 0.75rem', borderRadius:8, border:`1px solid ${C.border}`, background:'transparent', color:C.muted, cursor:fields.length===0?'not-allowed':'pointer', opacity:fields.length===0?0.4:1, transition:'color 150ms,border-color 150ms', display:'flex', alignItems:'center', gap:5, fontFamily:"'DM Sans',sans-serif" }}
+              onMouseEnter={e=>{ if(fields.length>0){e.currentTarget.style.color=C.fg;e.currentTarget.style.borderColor=C.muted} }}
+              onMouseLeave={e=>{e.currentTarget.style.color=C.muted;e.currentTarget.style.borderColor=C.border}}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Export JSON
+            </button>
             <button onClick={saveSchema} disabled={saving} style={{ fontSize:12, padding:'0.35rem 1rem', borderRadius:8, background:saving?C.accentDim:C.accent, color:'#0F172A', fontFamily:"'Space Grotesk',sans-serif", fontWeight:600, border:'none', cursor:saving?'not-allowed':'pointer', opacity:saving?0.7:1, transition:'background 150ms' }}>
               {saving?'Saving…':'Save Schema'}
             </button>

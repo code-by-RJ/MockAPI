@@ -29,6 +29,12 @@ export const createResource = async (req, res) => {
     const project = await Project.findOne({ slug: req.params.slug, owner: req.user.userId })
     if (!project) return res.status(404).json({ message: 'Project not found' })
 
+    // Priority 4 — DB overflow protection: max 10 resources per project
+    const resourceCount = await Resource.countDocuments({ projectId: project._id })
+    if (resourceCount >= 10) {
+      return res.status(403).json({ message: 'Resource limit reached (max 10 per project)' })
+    }
+
     const resource = await Resource.create({
       name:      name.toLowerCase().trim(),
       projectId: project._id,
@@ -38,15 +44,23 @@ export const createResource = async (req, res) => {
     })
 
     // Auto-seed 10 fake records if schema has fields
+    // Priority 4 — cap at 500 records per resource
     if (schema.length > 0) {
-      const fakeRecords = generateFakeData(schema, 10)
-      await DynamicData.insertMany(
-        fakeRecords.map(d => ({
-          projectId:    project._id,
-          resourceName: resource.name,
-          data:         d
-        }))
-      )
+      const existingCount = await DynamicData.countDocuments({
+        projectId: project._id,
+        resourceName: resource.name
+      })
+      if (existingCount < 500) {
+        const seedCount = Math.min(10, 500 - existingCount)
+        const fakeRecords = generateFakeData(schema, seedCount)
+        await DynamicData.insertMany(
+          fakeRecords.map(d => ({
+            projectId:    project._id,
+            resourceName: resource.name,
+            data:         d
+          }))
+        )
+      }
     }
 
     res.status(201).json({ message: 'Resource created', resource })
@@ -140,6 +154,43 @@ export const getProjectLogs = async (req, res) => {
       .limit(100)
 
     res.json({ data: logs })
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+}
+
+// ── Priority 4 ────────────────────────────────────────────────────────────────
+
+// POST /api/projects/:slug/resources/:name/seed
+// Re-seeds: deletes existing records, generates 10 fresh faker records
+// Only works if resource has schema fields defined
+export const seedResource = async (req, res) => {
+  try {
+    const { slug, name } = req.params
+
+    const project = await Project.findOne({ slug, owner: req.user.userId })
+    if (!project) return res.status(404).json({ message: 'Project not found' })
+
+    const resource = await Resource.findOne({ projectId: project._id, name })
+    if (!resource) return res.status(404).json({ message: 'Resource not found' })
+
+    if (!resource.schema || resource.schema.length === 0) {
+      return res.status(400).json({ message: 'Resource has no schema fields — add fields before seeding' })
+    }
+
+    // Replace all existing records for this resource
+    await DynamicData.deleteMany({ projectId: project._id, resourceName: name })
+
+    const fakeRecords = generateFakeData(resource.schema, 10)
+    await DynamicData.insertMany(
+      fakeRecords.map(d => ({
+        projectId:    project._id,
+        resourceName: name,
+        data:         d
+      }))
+    )
+
+    res.json({ message: `Re-seeded "${name}" with 10 fresh records`, count: 10 })
   } catch (err) {
     res.status(500).json({ message: err.message })
   }

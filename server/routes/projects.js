@@ -2,6 +2,7 @@ import express    from 'express'
 import Project     from '../models/Project.js'
 import Resource    from '../models/Resource.js'
 import DynamicData from '../models/DynamicData.js'
+import RequestLog  from '../models/RequestLog.js'
 import { authenticateToken } from '../middlewares/auth.js'
 import { getProjectLogs }    from '../controllers/resourceController.js'  // Phase 4
 import { invalidate }        from '../services/cacheService.js'
@@ -43,6 +44,12 @@ router.post('/', authenticateToken, async (req, res) => {
     const { name, isPublic = false } = req.body
     if (!name) return res.status(400).json({ message: 'Project name is required' })
 
+    // Priority 4 — DB overflow protection: max 5 projects per user
+    const projectCount = await Project.countDocuments({ owner: req.user.userId })
+    if (projectCount >= 5) {
+      return res.status(403).json({ message: 'Project limit reached (max 5)' })
+    }
+
     const slug    = await uniqueSlug(name)
     const project = await Project.create({ name, slug, owner: req.user.userId, isPublic })
 
@@ -62,7 +69,10 @@ router.delete('/:slug', authenticateToken, async (req, res) => {
     const resources = await Resource.find({ projectId: project._id })
     await Resource.deleteMany({ projectId: project._id })
     if (resources.length > 0) {
-      await DynamicData.deleteMany({ projectId: project._id })
+      await Promise.all([
+        DynamicData.deleteMany({ projectId: project._id }),
+        RequestLog.deleteMany({ projectId: project._id })
+      ])
     }
 
     invalidate(req.params.slug)
