@@ -79,13 +79,14 @@ const engineDailyLimiter = rateLimit({
   standardHeaders: true,   // sends RateLimit-* headers to client
   legacyHeaders:   false,
 
-  handler: (_req, res, _next, options) => {
+  handler: (req, res, _next, options) => {
+    const limit = typeof options.max === 'function' ? options.max(req) : options.max
     res.status(429).json({
-      success:    false,
-      error:      'Daily request limit reached. Try again tomorrow.',
-      code:       429,
-      limit:      options.max,
-      resetAt:    new Date(Date.now() + options.windowMs).toISOString(),
+      success: false,
+      error:   'Daily request limit reached. Try again tomorrow.',
+      code:    429,
+      limit,
+      resetAt: new Date(Date.now() + options.windowMs).toISOString(),
     })
   },
 })
@@ -100,8 +101,8 @@ app.use(cors({
   credentials: true,
 }))
 app.use(compression())
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
+app.use(express.json({ limit: '50kb' }))
+app.use(express.urlencoded({ extended: true, limit: '50kb' }))
 
 // ── DB ──────────────────────────────────────────────────────────────
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/mockapi')
