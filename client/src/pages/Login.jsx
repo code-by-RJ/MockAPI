@@ -143,6 +143,13 @@ export default function Login() {
     } catch (err) {
       const data = err.response?.data
       const msg  = typeof data?.error === 'string' ? data.error : data?.error?.message || data?.message
+
+      // Unverified account — redirect to verify-otp
+      if (data?.needsVerification) {
+        navigate(`/verify-otp?email=${encodeURIComponent(data.email)}&type=verify`)
+        return
+      }
+
       if (msg?.toLowerCase().includes('invalid') || msg?.toLowerCase().includes('credentials')) {
         setApiError('Incorrect email or password. Please try again.')
       } else if (msg?.toLowerCase().includes('not found') || msg?.toLowerCase().includes('no user')) {
@@ -228,6 +235,14 @@ export default function Login() {
               onMouseEnter={e => !loading && (e.currentTarget.style.background = C.accentDim)}
               onMouseLeave={e => !loading && (e.currentTarget.style.background = C.accent)}
             >{loading ? 'Signing in…' : 'Sign in'}</button>
+
+            <div style={{ textAlign: 'right', marginTop: 2 }}>
+              <Link to="/forgot-password" style={{ fontSize: 12, color: C.muted, textDecoration: 'none' }}
+                onMouseEnter={e => e.currentTarget.style.color = C.fg}
+                onMouseLeave={e => e.currentTarget.style.color = C.muted}>
+                Forgot password?
+              </Link>
+            </div>
           </form>
 
           <p style={{ textAlign: 'center', fontSize: 12, color: C.muted, marginTop: 24 }}>

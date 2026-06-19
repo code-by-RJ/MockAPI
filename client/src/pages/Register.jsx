@@ -97,8 +97,8 @@ export default function Register() {
     if (hasErrors) return
     setApiError(''); setLoading(true)
     try {
-      await register(fields.name.trim(), fields.email, fields.password)
-      navigate('/dashboard')
+      const data = await register(fields.name.trim(), fields.email, fields.password)
+      navigate(`/verify-otp?email=${encodeURIComponent(data.email)}&type=verify`)
     } catch (err) {
       const data = err.response?.data
       const msg  = data?.error || data?.message || ''

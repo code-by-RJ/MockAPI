@@ -49,7 +49,7 @@ const engineLimiter = rateLimit({
 })
 
 // Daily limiter — keyed by userId (JWT) or IP fallback
-// Authenticated users: 500 req/day  |  Unauthenticated (IP): 300 req/day
+// Authenticated users: 1000 req/day  |  Unauthenticated (IP): 300 req/day
 const engineDailyLimiter = rateLimit({
   windowMs: 24 * 60 * 60 * 1000, // 24 hours
 

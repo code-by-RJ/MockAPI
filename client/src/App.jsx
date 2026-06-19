@@ -6,6 +6,9 @@ import ProtectedRoute from './components/ProtectedRoute'
 import Landing        from './pages/Landing'
 import Login          from './pages/Login'
 import Register       from './pages/Register'
+import VerifyOTP      from './pages/VerifyOTP'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword  from './pages/ResetPassword'
 import Dashboard      from './pages/Dashboard'
 import ProjectDetail  from './pages/ProjectDetail'
 import SchemaBuilder  from './pages/SchemaBuilder'
@@ -20,10 +23,13 @@ export default function App() {
   return (
     <AuthProvider>
       <Routes>
-        <Route path="/"           element={<Landing />} />
-        <Route path="/login"      element={<Login />} />
-        <Route path="/register"   element={<Register />} />
-        <Route path="/demo/:slug" element={<ShareableDemo />} />
+        <Route path="/"                element={<Landing />} />
+        <Route path="/login"           element={<Login />} />
+        <Route path="/register"        element={<Register />} />
+        <Route path="/verify-otp"      element={<VerifyOTP />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password"  element={<ResetPassword />} />
+        <Route path="/demo/:slug"      element={<ShareableDemo />} />
 
         <Route path="/dashboard" element={
           <ProtectedRoute><Dashboard /></ProtectedRoute>

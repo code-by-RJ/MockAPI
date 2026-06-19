@@ -254,7 +254,7 @@ export default function Dashboard() {
             <p style={{ fontSize: 13, color: C.muted, maxWidth: 280, marginBottom: 8, lineHeight: 1.6 }}>Create your first project to start generating mock REST APIs with fake data.</p>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 24, margin: '12px 0 28px', flexWrap: 'wrap', justifyContent: 'center' }}>
-              {[['⚡','Auto-generates slug'],['🎲','Faker-powered data'],['🔗','Instant live endpoints']].map(([icon, text]) => (
+              {[['Auto-generates slug'],['Faker-powered data'],['Instant live endpoints']].map(([icon, text]) => (
                 <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: C.muted }}>
                   <span>{icon}</span><span>{text}</span>
                 </div>

@@ -25,11 +25,17 @@ export function AuthProvider({ children }) {
     return res.data
   }, [])
 
+  // Register no longer stores token — user must verify OTP first
+  // Returns { success, message, email } — caller navigates to /verify-otp
   const register = useCallback(async (name, email, password) => {
     const res = await api.post('/auth/register', { name, email, password })
-    localStorage.setItem('token', res.data.token)
-    setUser(res.data.user)
     return res.data
+  }, [])
+
+  // Called by VerifyOTP + any other post-OTP flow to finish auth
+  const loginWithToken = useCallback((token, userData) => {
+    localStorage.setItem('token', token)
+    setUser(userData)
   }, [])
 
   const logout = useCallback(() => {
@@ -38,7 +44,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, loading, login, register, loginWithToken, logout, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   )
