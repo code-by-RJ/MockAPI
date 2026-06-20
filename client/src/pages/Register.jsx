@@ -81,6 +81,28 @@ export default function Register() {
   const [touched, setTouched]   = useState({})
   const [apiError, setApiError] = useState('')
   const [loading, setLoading]   = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+
+  const genStrongPassword = () => {
+    const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
+    const lower = 'abcdefghijkmnpqrstuvwxyz'
+    const nums  = '23456789'
+    const all   = upper + lower + nums
+    const req   = [
+      upper[Math.floor(Math.random() * upper.length)],
+      nums[Math.floor(Math.random() * nums.length)],
+    ]
+    const rest = Array.from({ length: 6 }, () => all[Math.floor(Math.random() * all.length)])
+    const arr  = [...req, ...rest]
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]]
+    }
+    const pw = arr.join('')
+    setFields(p => ({ ...p, password: pw }))
+    setShowPassword(true)
+    setTouched(p => ({ ...p, password: true }))
+  }
   const { register } = useAuth()
   const navigate     = useNavigate()
 
@@ -191,12 +213,20 @@ export default function Register() {
             <ValidatedInput label="Name" type="text" placeholder="Silk Dev" value={fields.name} onChange={set('name')} onBlur={touch('name')} error={errors.name} touched={touched.name} autoComplete="name" />
             <ValidatedInput label="Email" type="email" placeholder="you@example.com" value={fields.email} onChange={set('email')} onBlur={touch('email')} error={errors.email} touched={touched.email} autoComplete="email" />
 
-            {/* Password + strength */}
+            {/* Password + strength + suggest */}
             <div>
-              <label style={{ display: 'block', fontSize: 12, color: C.muted, marginBottom: 6 }}>Password</label>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                <label style={{ fontSize: 12, color: C.muted }}>Password</label>
+                <button type="button" onClick={genStrongPassword}
+                  style={{ fontSize: 11, color: C.accent, background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", display: 'flex', alignItems: 'center', gap: 4, padding: 0 }}
+                  title="Generate a strong password">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                  Suggest password
+                </button>
+              </div>
               <div style={{ position: 'relative' }}>
                 <input
-                  type="password" placeholder="Min. 6 characters" value={fields.password}
+                  type={showPassword ? 'text' : 'password'} placeholder="Min. 6 characters" value={fields.password}
                   onChange={set('password')} onBlur={touch('password')} autoComplete="new-password"
                   style={{
                     width: '100%', boxSizing: 'border-box',
@@ -206,11 +236,13 @@ export default function Register() {
                     fontSize: 14, color: C.fg, fontFamily: "'DM Sans', sans-serif", outline: 'none',
                   }}
                 />
-                {touched.password && !errors.password && fields.password && (
-                  <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: C.accent, pointerEvents: 'none' }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-                  </span>
-                )}
+                <button type="button" onClick={() => setShowPassword(p => !p)} aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: C.muted, cursor: 'pointer', padding: 2, display: 'flex', alignItems: 'center' }}>
+                  {showPassword
+                    ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                    : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  }
+                </button>
               </div>
               {fields.password && (
                 <div style={{ marginTop: 8 }}>

@@ -13,7 +13,16 @@ const signToken = (user) =>
 const generateOTP = () =>
   Math.floor(100000 + Math.random() * 900000).toString()
 
-const OTP_TTL = 10 * 60 * 1000  // 10 minutes in ms
+const OTP_TTL          = 10 * 60 * 1000  // 10 minutes in ms
+const RESEND_COOLDOWN   = 60 * 1000      // 60 seconds — doc: "OTP Resend Cooldown"
+
+// Returns ms remaining before resend allowed, or 0 if cooldown has passed / no OTP sent yet
+function cooldownRemaining(user) {
+  if (!user.otpExpiry) return 0
+  const sentAt = user.otpExpiry.getTime() - OTP_TTL
+  const elapsed = Date.now() - sentAt
+  return elapsed < RESEND_COOLDOWN ? RESEND_COOLDOWN - elapsed : 0
+}
 
 export const authController = {
 
@@ -129,6 +138,15 @@ export const authController = {
       if (type === 'reset' && !user.isVerified)
         return res.status(400).json({ success: false, error: 'Account is not verified.' })
 
+      const wait = cooldownRemaining(user)
+      if (wait > 0) {
+        return res.status(429).json({
+          success: false,
+          error:   `Please wait ${Math.ceil(wait / 1000)}s before requesting a new OTP.`,
+          retryAfterMs: wait,
+        })
+      }
+
       const otp = generateOTP()
       user.otp       = otp
       user.otpExpiry = new Date(Date.now() + OTP_TTL)
@@ -153,6 +171,14 @@ export const authController = {
 
       // Always return success — don't reveal if email exists (security)
       if (!user || !user.isVerified) {
+        return res.json({
+          success: true,
+          message: 'If an account exists for this email, an OTP has been sent.',
+        })
+      }
+
+      // Respect resend cooldown silently — don't leak timing info, just skip the send
+      if (cooldownRemaining(user) > 0) {
         return res.json({
           success: true,
           message: 'If an account exists for this email, an OTP has been sent.',
@@ -214,7 +240,7 @@ export const authController = {
     } catch (err) { next(err) }
   },
 
-  // ── Login — blocks unverified accounts ──────────────────────────
+  // ── Login ────────────────────────────────────────────────────────
   async login(req, res, next) {
     try {
       const { email, password } = req.body
@@ -224,20 +250,57 @@ export const authController = {
 
       const user = await User.findOne({ email })
       if (!user)
-        return res.status(401).json({ success: false, error: 'Invalid credentials' })
+        return res.status(401).json({ success: false, error: 'No account found with this email.' })
+
+      // Check lockout
+      if (user.lockUntil && user.lockUntil > new Date()) {
+        const remaining = Math.ceil((user.lockUntil - Date.now()) / 60000)
+        return res.status(423).json({
+          success:   false,
+          error:     `Account locked. Try again in ${remaining} min${remaining > 1 ? 's' : ''}.`,
+          isLocked:  true,
+          lockUntil: user.lockUntil,
+        })
+      }
+
+      // If lockUntil has passed — reset and persist immediately
+      if (user.lockUntil && user.lockUntil <= new Date()) {
+        user.lockUntil     = null
+        user.loginAttempts = 0
+        await user.save()
+      }
 
       const valid = await bcrypt.compare(password, user.password)
-      if (!valid)
-        return res.status(401).json({ success: false, error: 'Invalid credentials' })
 
-      // Block unverified users — tell frontend to redirect to verify-otp
-      if (!user.isVerified) {
-        return res.status(403).json({
-          success:          false,
-          error:            'Email not verified. Check your inbox for the OTP.',
-          needsVerification: true,
-          email:            user.email,
+      if (!valid) {
+        user.loginAttempts = (user.loginAttempts || 0) + 1
+
+        if (user.loginAttempts >= 3) {
+          user.lockUntil     = new Date(Date.now() + 15 * 60 * 1000)
+          user.loginAttempts = 0
+          await user.save()
+          return res.status(423).json({
+            success:  false,
+            error:    'Too many wrong attempts. Account locked for 15 minutes.',
+            isLocked: true,
+            lockUntil: user.lockUntil,
+          })
+        }
+
+        await user.save()
+        const left = 3 - user.loginAttempts
+        return res.status(401).json({
+          success:      false,
+          error:        `Incorrect password. ${left} attempt${left === 1 ? '' : 's'} remaining.`,
+          attemptsLeft: left,
         })
+      }
+
+      // Correct password — reset attempt counter
+      if (user.loginAttempts > 0 || user.lockUntil) {
+        user.loginAttempts = 0
+        user.lockUntil     = null
+        await user.save()
       }
 
       const token = signToken(user)
@@ -252,7 +315,7 @@ export const authController = {
   // ── Me ───────────────────────────────────────────────────────────
   async me(req, res, next) {
     try {
-      const user = await User.findById(req.user.userId).select('-password -otp -otpExpiry -otpType')
+      const user = await User.findById(req.user.userId).select('-password -otp -otpExpiry -otpType -loginAttempts -lockUntil')
       if (!user)
         return res.status(404).json({ success: false, error: 'User not found' })
 

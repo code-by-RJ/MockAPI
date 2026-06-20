@@ -45,13 +45,18 @@ export default function ProjectDetail() {
 
   const BASE_URL = `${import.meta.env.VITE_API_URL || window.location.origin}/api/${slug}`
 
-  // Fetch record counts from engine API (public, no auth needed)
+  // Fetch record counts from engine API — now requires JWT since private
+  // projects (isPublic: false) are guarded at the engine pipeline level.
+  // Owner's token always works since pipeline checks token.userId === project.owner.
   const fetchRecordCounts = useCallback(async (resourceList) => {
     if (!resourceList || resourceList.length === 0) return
+    const token = localStorage.getItem('token')
     const results = await Promise.allSettled(
       resourceList.map(async (r) => {
         try {
-          const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/${slug}/${r.name}?limit=1`)
+          const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/${slug}/${r.name}?limit=1`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          })
           const data = await res.json()
           return { name: r.name, total: data.total ?? 0 }
         } catch {
@@ -161,7 +166,10 @@ export default function ProjectDetail() {
       toast(`"${resourceName}" re-seeded with 10 fresh records`, 'success')
       // Refresh count for this resource
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/${slug}/${resourceName}?limit=1`)
+        const token = localStorage.getItem('token')
+        const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/${slug}/${resourceName}?limit=1`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        })
         const data = await res.json()
         setRecordCounts(c => ({ ...c, [resourceName]: data.total ?? 10 }))
       } catch { setRecordCounts(c => ({ ...c, [resourceName]: 10 })) }

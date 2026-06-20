@@ -119,43 +119,41 @@ function LeftPanel() {
 }
 
 export default function Login() {
-  const [fields, setFields]     = useState({ email: '', password: '' })
-  const [touched, setTouched]   = useState({})
-  const [apiError, setApiError] = useState('')
-  const [loading, setLoading]   = useState(false)
+  const [fields, setFields]       = useState({ email: '', password: '' })
+  const [touched, setTouched]     = useState({})
+  const [apiError, setApiError]   = useState('')
+  const [loading, setLoading]     = useState(false)
+  const [attemptsLeft, setAttemptsLeft] = useState(null)   // 1 | 2 | null
+  const [lockUntil, setLockUntil]       = useState(null)   // Date | null
   const { login }  = useAuth()
   const navigate   = useNavigate()
 
   const errors    = validate(fields)
   const hasErrors = Object.keys(errors).length > 0
 
-  const set   = (key) => (e) => { setFields(p => ({ ...p, [key]: e.target.value })); if (apiError) setApiError('') }
+  const set   = (key) => (e) => { setFields(p => ({ ...p, [key]: e.target.value })); if (apiError) { setApiError(''); setAttemptsLeft(null); setLockUntil(null) } }
   const touch = (key) => () => setTouched(p => ({ ...p, [key]: true }))
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setTouched({ email: true, password: true })
     if (hasErrors) return
-    setApiError(''); setLoading(true)
+    setApiError(''); setLoading(true); setAttemptsLeft(null); setLockUntil(null)
     try {
       await login(fields.email, fields.password)
       navigate('/dashboard')
     } catch (err) {
       const data = err.response?.data
-      const msg  = typeof data?.error === 'string' ? data.error : data?.error?.message || data?.message
+      const msg  = typeof data?.error === 'string' ? data.error : data?.message || 'Something went wrong.'
 
-      // Unverified account — redirect to verify-otp
-      if (data?.needsVerification) {
-        navigate(`/verify-otp?email=${encodeURIComponent(data.email)}&type=verify`)
-        return
-      }
-
-      if (msg?.toLowerCase().includes('invalid') || msg?.toLowerCase().includes('credentials')) {
-        setApiError('Incorrect email or password. Please try again.')
-      } else if (msg?.toLowerCase().includes('not found') || msg?.toLowerCase().includes('no user')) {
-        setApiError('No account found with this email. Did you mean to sign up?')
+      if (data?.isLocked) {
+        setLockUntil(data.lockUntil ? new Date(data.lockUntil) : null)
+        setApiError(msg)
+      } else if (data?.attemptsLeft !== undefined) {
+        setAttemptsLeft(data.attemptsLeft)
+        setApiError(msg)
       } else {
-        setApiError(msg || 'Something went wrong. Please try again.')
+        setApiError(msg)
       }
     } finally { setLoading(false) }
   }
@@ -220,10 +218,34 @@ export default function Login() {
             <p style={{ fontSize: 13, color: C.muted }}>Sign in to your account</p>
           </div>
 
-          {apiError && (
-            <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: C.red, fontSize: 12, borderRadius: 10, padding: '0.65rem 0.85rem', marginBottom: 20, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ marginTop: 1, flexShrink: 0 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              {apiError}
+          {/* Locked state */}
+          {lockUntil && (
+            <div style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 10, padding: '0.75rem 0.85rem', marginBottom: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={C.yellow} strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }} aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <span style={{ fontSize: 12, color: C.yellow, fontWeight: 500 }}>{apiError}</span>
+              </div>
+              <Link to={`/forgot-password`} style={{ fontSize: 11, color: C.muted, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                onMouseEnter={e => e.currentTarget.style.color = C.fg}
+                onMouseLeave={e => e.currentTarget.style.color = C.muted}>
+                Reset password instead →
+              </Link>
+            </div>
+          )}
+
+          {/* Wrong password with attempts left */}
+          {!lockUntil && apiError && (
+            <div style={{ background: 'rgba(239,68,68,0.08)', border: `1px solid ${attemptsLeft === 1 ? 'rgba(251,191,36,0.35)' : 'rgba(239,68,68,0.2)'}`, color: attemptsLeft === 1 ? C.yellow : C.red, fontSize: 12, borderRadius: 10, padding: '0.65rem 0.85rem', marginBottom: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ marginTop: 1, flexShrink: 0 }} aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <span>{apiError}</span>
+              </div>
+              {attemptsLeft === 1 && (
+                <p style={{ marginTop: 6, fontSize: 11, color: C.muted, paddingLeft: 21 }}>
+                  1 more wrong attempt will lock your account for 15 min.{' '}
+                  <Link to="/forgot-password" style={{ color: C.accent, textDecoration: 'none' }}>Reset password?</Link>
+                </p>
+              )}
             </div>
           )}
 

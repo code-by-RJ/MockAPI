@@ -15,10 +15,12 @@ function slugify(str) {
   return str.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 }
 
-async function uniqueSlug(base) {
+async function uniqueSlug(base, excludeId = null) {
   let slug = slugify(base)
   let i    = 1
-  while (await Project.findOne({ slug })) {
+  while (true) {
+    const existing = await Project.findOne({ slug })
+    if (!existing || (excludeId && existing._id.equals(excludeId))) break
     slug = `${slugify(base)}-${i++}`
   }
   return slug
@@ -54,6 +56,53 @@ router.post('/', authenticateToken, async (req, res) => {
     const project = await Project.create({ name, slug, owner: req.user.userId, isPublic })
 
     res.status(201).json({ message: 'Project created', project })
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+})
+
+// PATCH /api/projects/:slug — rename + isPublic toggle
+router.patch('/:slug', authenticateToken, async (req, res) => {
+  try {
+    const { name, isPublic } = req.body
+
+    if (name === undefined && isPublic === undefined) {
+      return res.status(400).json({ message: 'Nothing to update — provide name and/or isPublic' })
+    }
+
+    const project = await Project.findOne({ slug: req.params.slug, owner: req.user.userId })
+    if (!project) return res.status(404).json({ message: 'Project not found' })
+
+    let slugChanged = false
+
+    if (name !== undefined) {
+      const trimmed = name.trim()
+      if (!trimmed) return res.status(400).json({ message: 'Project name cannot be empty' })
+
+      if (trimmed !== project.name) {
+        project.name = trimmed
+        const newSlug = await uniqueSlug(trimmed, project._id)
+        if (newSlug !== project.slug) {
+          slugChanged = true
+          // Invalidate old slug from cache before changing it
+          invalidate(project.slug)
+          project.slug = newSlug
+        }
+      }
+    }
+
+    if (isPublic !== undefined) {
+      project.isPublic = isPublic === true || isPublic === 'true'
+    }
+
+    await project.save()
+    invalidate(project.slug)  // always invalidate current slug post-save
+
+    res.json({
+      message: 'Project updated',
+      project,
+      slugChanged,
+    })
   } catch (err) {
     res.status(500).json({ message: err.message })
   }

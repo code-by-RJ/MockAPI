@@ -1,3 +1,4 @@
+import jwt          from 'jsonwebtoken'
 import Resource    from '../models/Resource.js'
 import DynamicData from '../models/DynamicData.js'
 import RequestLog  from '../models/RequestLog.js'
@@ -42,6 +43,25 @@ export async function engineHandler(req, res) {
     const project = await getProject(req.params.slug)
     if (!project) return res.status(404).json({ success: false, error: 'Project not found', code: 404 })
     _project = project
+
+    // ── Step 1b — Visibility guard ────────────────────────────────────
+    // Private project → only the owner (valid JWT) can hit this engine route
+    if (!project.isPublic) {
+      const authHeader = req.headers.authorization
+      const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
+      let ownerId = null
+
+      if (token) {
+        try {
+          const decoded = jwt.verify(token, process.env.JWT_SECRET)
+          ownerId = decoded.userId
+        } catch { /* invalid/expired token — treated as unauthenticated below */ }
+      }
+
+      if (!ownerId || ownerId !== project.owner.toString()) {
+        return res.status(403).json({ success: false, error: 'This project is private', code: 403 })
+      }
+    }
 
     // ── Step 2 — Resource ────────────────────────────────────────────
     const resource = await Resource.findOne({ projectId: project._id, name: req.params.resource })
