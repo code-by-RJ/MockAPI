@@ -19,12 +19,14 @@ A platform to create and manage mock REST APIs without writing backend code. Def
 ## Features
 
 - **Schema Builder** — visual field editor with drag-to-reorder, live JSON preview, type reference
-- **Fake Data Engine** — 10 records auto-seeded on resource create via Faker.js
-- **Dynamic Endpoints** — full REST CRUD auto-generated per resource (public, no auth)
+- **Fake Data Engine** — 10 records auto-seeded on resource create via Faker.js; re-seed anytime
+- **Dynamic Endpoints** — full REST CRUD auto-generated per resource (public, no auth required)
 - **Query Support** — pagination, sorting, and filtering out of the box
 - **Error Simulation** — configurable error rate and response delay per resource
 - **Request Logs** — last 100 requests per project, auto-refresh
 - **Shareable Demo** — public demo page per project, no login required
+- **Email Verification** — OTP-based email verify on register; bcrypt-hashed OTP storage
+- **Account Security** — login lockout after 3 wrong attempts (15 min), rate limiting on all auth routes
 
 ---
 
@@ -34,23 +36,26 @@ A platform to create and manage mock REST APIs without writing backend code. Def
 MockAPI/
 ├── client/                  # React + Vite frontend
 │   ├── src/
-│   │   ├── pages/           # Landing, Login, Register, Dashboard,
-│   │   │                    # ProjectDetail, SchemaBuilder, EndpointViewer,
-│   │   │                    # ShareableDemo, NotFound
+│   │   ├── pages/           # Landing, Login, Register, VerifyOTP, ForgotPassword,
+│   │   │                    # ResetPassword, Dashboard, ProjectDetail, SchemaBuilder,
+│   │   │                    # EndpointViewer, ShareableDemo, Settings, NotFound
 │   │   ├── components/      # ConfirmModal, Skeleton, RequestLogsPanel,
-│   │   │                    # ErrorSimConfig, ProtectedRoute
-│   │   ├── context/         # ToastContext
-│   │   ├── contexts/        # AuthContext
+│   │   │                    # ErrorSimConfig, CodeSnippet, EndpointTable,
+│   │   │                    # FieldRow, LivePreview, ProjectCard, ResourceTable,
+│   │   │                    # Navbar, Sidebar, Toast
+│   │   ├── contexts/        # AuthContext, ToastContext
 │   │   ├── hooks/           # useAuth, useProjects
-│   │   └── lib/             # axios (JWT interceptor)
+│   │   └── lib/             # axios (JWT interceptor with 401 auto-logout)
 │   └── package.json
 ├── server/                  # Node.js + Express backend
+│   ├── app.js               # Express app factory (imported by index.js + tests)
+│   ├── index.js             # Entry point — DB connect + server listen
 │   ├── controllers/         # authController, resourceController
-│   ├── middlewares/         # auth, pipeline, errorHandler
+│   ├── middlewares/         # auth, pipeline (engine), errorHandler
 │   ├── models/              # User, Project, Resource, DynamicData, RequestLog
 │   ├── routes/              # auth, projects, resources, engine
 │   ├── services/            # schemaService, fakerService, cacheService, queryService
-│   ├── index.js
+│   ├── tests/               # auth, engine, rateLimiter test suites (Jest + Supertest)
 │   └── package.json
 └── README.md
 ```
@@ -88,9 +93,12 @@ NODE_ENV=development
 MONGODB_URI=mongodb://localhost:27017/mockapi
 JWT_SECRET=your_jwt_secret_here
 CLIENT_URL=http://localhost:5173
+RESEND_API_KEY=your_resend_api_key_here
+FROM_EMAIL=noreply@yourdomain.com
 ```
 
-> `JWT_SECRET` is required in all environments. `MONGODB_URI` and `CLIENT_URL` are required in production — server will exit on start if missing.
+> `JWT_SECRET`, `RESEND_API_KEY`, and `FROM_EMAIL` are required in all environments.  
+> `MONGODB_URI` and `CLIENT_URL` are required in production — server exits on start if missing.
 
 ### Running Locally
 
@@ -104,6 +112,14 @@ cd client && npm run dev
 
 App available at `http://localhost:5173`
 
+### Running Tests
+
+```bash
+cd server && npm test
+```
+
+Tests use `mongodb-memory-server` — no real DB connection needed.
+
 ---
 
 ## API Reference
@@ -111,29 +127,49 @@ App available at `http://localhost:5173`
 ### Auth
 
 ```
-POST   /api/auth/register     { name, email, password }
-POST   /api/auth/login        { email, password }
-GET    /api/auth/me           Authorization: Bearer <token>
+POST   /api/auth/register              { name, email, password }
+POST   /api/auth/login                 { email, password }
+GET    /api/auth/me                    Authorization: Bearer <token>
+
+POST   /api/auth/verify-otp            { email, otp }
+POST   /api/auth/verify-reset-otp      { email, otp }
+POST   /api/auth/resend-otp            { email, type }   — type: 'verify' | 'reset'
+POST   /api/auth/forgot-password       { email }
+POST   /api/auth/reset-password        { email, otp, password }
 ```
 
-### Projects  *(requires auth)*
+### Profile *(requires auth)*
+
+```
+PUT    /api/auth/profile               { name }
+PUT    /api/auth/change-password       { currentPassword, newPassword }
+POST   /api/auth/request-email-change  { newEmail }
+POST   /api/auth/confirm-email-change  { otp }
+```
+
+### Projects *(requires auth)*
 
 ```
 GET    /api/projects
-POST   /api/projects          { name, isPublic? }
+POST   /api/projects                   { name, isPublic? }
+PATCH  /api/projects/:slug             { name?, isPublic? }
 DELETE /api/projects/:slug
 ```
 
-### Resources  *(requires auth)*
+### Resources *(requires auth)*
 
 ```
 GET    /api/projects/:slug/resources
-POST   /api/projects/:slug/resources    { name, schema? }
-PUT    /api/projects/:slug/resources/:name
+POST   /api/projects/:slug/resources          { name, schema? }
+PUT    /api/projects/:slug/resources/:name    { schema }
 DELETE /api/projects/:slug/resources/:name
+
+POST   /api/projects/:slug/resources/:name/seed          — re-seed 10 fresh records
+PUT    /api/projects/:slug/resources/:name/config        { errorRate?, delay? }
+GET    /api/projects/:slug/logs
 ```
 
-### Dynamic Engine  *(public — no auth)*
+### Dynamic Engine *(public — no auth)*
 
 ```
 GET    /api/:slug/:resource              ?page=1&limit=10&sort=-createdAt&filter=name:john
@@ -143,7 +179,23 @@ PUT    /api/:slug/:resource/:id         { ...fields }
 DELETE /api/:slug/:resource/:id
 ```
 
-**Rate limit:** 100 requests / 15 min per IP.
+**Rate limits:** 100 req / 15 min per IP · 1000 req / day (auth) · 300 req / day (IP fallback)
+
+---
+
+## Security
+
+| Layer | Detail |
+|---|---|
+| Helmet.js | HTTP security headers (CSP, X-Frame-Options, etc.) |
+| mongo-sanitize | Strips `$` and `.` keys — prevents NoSQL injection |
+| bcrypt | Passwords hashed at cost 10; OTPs hashed at cost 6 |
+| Rate limiting | Per-route limits on auth, OTP, email, and engine |
+| Account lockout | 3 wrong passwords → 15 min lock |
+| Body size limit | 50 kb max on all routes |
+| isPublic guard | Private project endpoints require owner JWT |
+| Email normalization | All emails lowercased + trimmed before DB ops |
+| Password policy | Min 8 chars, must include letters and numbers |
 
 ---
 
@@ -165,6 +217,8 @@ MONGODB_URI=<atlas-connection-string>
 JWT_SECRET=<strong-random-secret>
 CLIENT_URL=https://mockapi.spacego.online
 PORT=8000
+RESEND_API_KEY=<your-resend-key>
+FROM_EMAIL=noreply@mail.spacego.online
 ```
 
 ### Frontend — Vercel
