@@ -384,4 +384,155 @@ export const authController = {
       res.json({ success: true, user })
     } catch (err) { next(err) }
   },
+
+  // ── Update Profile (name only) ───────────────────────────────────
+  async updateProfile(req, res, next) {
+    try {
+      const { name } = req.body
+      if (!name || !name.trim())
+        return res.status(400).json({ success: false, error: 'Name is required' })
+      if (name.trim().length < 2)
+        return res.status(400).json({ success: false, error: 'Name must be at least 2 characters' })
+
+      const user = await User.findByIdAndUpdate(
+        req.user.userId,
+        { name: name.trim() },
+        { new: true }
+      ).select('-password -otp -otpExpiry -otpType -loginAttempts -lockUntil -pendingEmail')
+
+      if (!user)
+        return res.status(404).json({ success: false, error: 'User not found' })
+
+      res.json({ success: true, user })
+    } catch (err) { next(err) }
+  },
+
+  // ── Change Password ───────────────────────────────────────────────
+  async changePassword(req, res, next) {
+    try {
+      const { currentPassword, newPassword } = req.body
+      if (!currentPassword || !newPassword)
+        return res.status(400).json({ success: false, error: 'Both current and new password are required' })
+
+      if (!STRONG_PASSWORD.test(newPassword))
+        return res.status(400).json({
+          success: false,
+          error: 'New password must be at least 8 characters and include both letters and numbers',
+        })
+
+      const user = await User.findById(req.user.userId)
+      if (!user)
+        return res.status(404).json({ success: false, error: 'User not found' })
+
+      const valid = await bcrypt.compare(currentPassword, user.password)
+      if (!valid)
+        return res.status(401).json({ success: false, error: 'Current password is incorrect' })
+
+      const sameAsOld = await bcrypt.compare(newPassword, user.password)
+      if (sameAsOld)
+        return res.status(400).json({ success: false, error: 'New password must be different from current password' })
+
+      user.password = await bcrypt.hash(newPassword, 10)
+      await user.save()
+
+      res.json({ success: true, message: 'Password updated successfully' })
+    } catch (err) { next(err) }
+  },
+
+  // ── Request Email Change — verify pw, send OTP to new email ──────
+  async requestEmailChange(req, res, next) {
+    try {
+      const { currentPassword, newEmail } = req.body
+      if (!currentPassword || !newEmail)
+        return res.status(400).json({ success: false, error: 'Current password and new email are required' })
+
+      const normalizedNew = normalizeEmail(newEmail)
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedNew))
+        return res.status(400).json({ success: false, error: 'Enter a valid email address' })
+
+      const user = await User.findById(req.user.userId)
+      if (!user)
+        return res.status(404).json({ success: false, error: 'User not found' })
+
+      const valid = await bcrypt.compare(currentPassword, user.password)
+      if (!valid)
+        return res.status(401).json({ success: false, error: 'Current password is incorrect' })
+
+      if (normalizedNew === normalizeEmail(user.email))
+        return res.status(400).json({ success: false, error: 'New email must be different from current email' })
+
+      const taken = await User.findOne({ email: normalizedNew })
+      if (taken)
+        return res.status(400).json({ success: false, error: 'This email is already in use' })
+
+      const wait = cooldownRemaining(user)
+      if (wait > 0)
+        return res.status(429).json({
+          success: false,
+          error: `Please wait ${Math.ceil(wait / 1000)}s before requesting a new OTP.`,
+          retryAfterMs: wait,
+        })
+
+      const otp = generateOTP()
+      user.otp          = await hashOtp(otp)
+      user.otpExpiry    = new Date(Date.now() + OTP_TTL)
+      user.otpType      = 'email-change'
+      user.pendingEmail = normalizedNew
+      await user.save()
+
+      await sendVerifyOTP(normalizedNew, user.name, otp)
+
+      res.json({ success: true, message: `OTP sent to ${normalizedNew}. Enter it to confirm the change.` })
+    } catch (err) { next(err) }
+  },
+
+  // ── Confirm Email Change — verify OTP, swap email ────────────────
+  async confirmEmailChange(req, res, next) {
+    try {
+      const { otp } = req.body
+      if (!otp)
+        return res.status(400).json({ success: false, error: 'OTP is required' })
+
+      const user = await User.findById(req.user.userId)
+      if (!user)
+        return res.status(404).json({ success: false, error: 'User not found' })
+
+      if (user.otpType !== 'email-change' || !user.pendingEmail)
+        return res.status(400).json({ success: false, error: 'No email change was requested' })
+
+      if (!user.otp || !user.otpExpiry)
+        return res.status(400).json({ success: false, error: 'No OTP found. Request a new one.' })
+
+      if (new Date() > user.otpExpiry) {
+        user.otp = null; user.otpExpiry = null; user.otpType = null; user.pendingEmail = null
+        await user.save()
+        return res.status(400).json({ success: false, error: 'OTP expired. Request a new one.' })
+      }
+
+      const isValid = await compareOtp(otp, user.otp)
+      if (!isValid)
+        return res.status(400).json({ success: false, error: 'Incorrect OTP. Try again.' })
+
+      // Race condition guard — re-check email not taken in the meantime
+      const taken = await User.findOne({ email: user.pendingEmail, _id: { $ne: user._id } })
+      if (taken) {
+        user.otp = null; user.otpExpiry = null; user.otpType = null; user.pendingEmail = null
+        await user.save()
+        return res.status(400).json({ success: false, error: 'This email was just taken by another account. Try a different one.' })
+      }
+
+      user.email        = user.pendingEmail
+      user.pendingEmail = null
+      user.otp          = null
+      user.otpExpiry    = null
+      user.otpType      = null
+      await user.save()
+
+      res.json({
+        success: true,
+        message: 'Email updated successfully',
+        user: { id: user._id, name: user.name, email: user.email },
+      })
+    } catch (err) { next(err) }
+  },
 }

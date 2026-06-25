@@ -78,4 +78,10 @@ router.post('/resend-otp',       emailLimiter,                            authCo
 router.post('/forgot-password',  emailLimiter,                            authController.forgotPassword)
 router.post('/reset-password',   passwordResetDailyLimiter, otpResetLimiter, authController.resetPassword)
 
+// Protected — profile/settings
+router.put('/profile',               authenticateToken, authController.updateProfile)
+router.put('/change-password',       authenticateToken, authController.changePassword)
+router.post('/request-email-change', authenticateToken, authController.requestEmailChange)
+router.post('/confirm-email-change', authenticateToken, authController.confirmEmailChange)
+
 export default router

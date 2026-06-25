@@ -9,7 +9,9 @@ const userSchema = new mongoose.Schema(
     // OTP fields — shared for both verify + reset flows
     otp:           { type: String,  default: null },
     otpExpiry:     { type: Date,    default: null },
-    otpType:       { type: String,  default: null },  // 'verify' | 'reset' | null
+    otpType:       { type: String,  default: null },  // 'verify' | 'reset' | 'email-change' | null
+    // Email change — stores the new email while OTP is pending
+    pendingEmail:  { type: String,  default: null, maxlength: 100 },
     // Login security
     loginAttempts: { type: Number,  default: 0 },
     lockUntil:     { type: Date,    default: null },
