@@ -15,6 +15,7 @@ import SchemaBuilder  from './pages/SchemaBuilder'
 import EndpointViewer from './pages/EndpointViewer'
 import ShareableDemo  from './pages/ShareableDemo'
 import NotFound       from './pages/NotFound'
+import Settings       from './pages/Settings'
 
 // Bug 4 fix: BrowserRouter removed — it lives in main.jsx already (via ToastProvider wrapper)
 // Having two BrowserRouters causes "cannot render Router inside Router" crash
@@ -49,6 +50,10 @@ export default function App() {
         } />
         <Route path="/project/:slug/resource/:name/endpoints" element={
           <ProtectedRoute><EndpointViewer /></ProtectedRoute>
+        } />
+
+        <Route path="/settings" element={
+          <ProtectedRoute><Settings /></ProtectedRoute>
         } />
 
         <Route path="*" element={<NotFound />} />
