@@ -13,6 +13,18 @@ const signToken = (user) =>
 const generateOTP = () =>
   Math.floor(100000 + Math.random() * 900000).toString()
 
+// OTP stored hashed — DB leak should not expose active OTPs.
+// Low rounds since OTP is short-lived (10 min) and 6-digit numeric (low entropy anyway).
+const hashOtp    = (otp) => bcrypt.hash(otp, 6)
+const compareOtp = (otp, hash) => hash ? bcrypt.compare(otp, hash) : Promise.resolve(false)
+
+// Email is the lookup key — normalize everywhere so "User@Gmail.com" and
+// "user@gmail.com" always resolve to the same account.
+const normalizeEmail = (email) => String(email || '').toLowerCase().trim()
+
+// Letters + numbers, 8+ chars. Frontend mirrors this exact pattern.
+const STRONG_PASSWORD = /^(?=.*[a-zA-Z])(?=.*\d).{8,}$/
+
 const OTP_TTL          = 10 * 60 * 1000  // 10 minutes in ms
 const RESEND_COOLDOWN   = 60 * 1000      // 60 seconds — doc: "OTP Resend Cooldown"
 
@@ -34,10 +46,14 @@ export const authController = {
       if (!name || !email || !password)
         return res.status(400).json({ success: false, error: 'All fields are required' })
 
-      if (password.length < 6)
-        return res.status(400).json({ success: false, error: 'Password must be at least 6 characters' })
+      if (!STRONG_PASSWORD.test(password))
+        return res.status(400).json({
+          success: false,
+          error: 'Password must be at least 8 characters and include both letters and numbers',
+        })
 
-      const existing = await User.findOne({ email })
+      const normalizedEmail = normalizeEmail(email)
+      const existing = await User.findOne({ email: normalizedEmail })
 
       // If user exists but is unverified — allow resend (overwrite OTP)
       if (existing && existing.isVerified)
@@ -45,33 +61,34 @@ export const authController = {
 
       const otp       = generateOTP()
       const otpExpiry = new Date(Date.now() + OTP_TTL)
-      const hashed    = await bcrypt.hash(password, 10)
+      const hashed     = await bcrypt.hash(password, 10)
+      const hashedOtp  = await hashOtp(otp)
 
       if (existing && !existing.isVerified) {
         // Update existing unverified user
         existing.name      = name
         existing.password  = hashed
-        existing.otp       = otp
+        existing.otp       = hashedOtp
         existing.otpExpiry = otpExpiry
         existing.otpType   = 'verify'
         await existing.save()
       } else {
         await User.create({
-          name, email,
+          name, email: normalizedEmail,
           password:   hashed,
           isVerified: false,
-          otp,
+          otp:        hashedOtp,
           otpExpiry,
           otpType: 'verify',
         })
       }
 
-      await sendVerifyOTP(email, name, otp)
+      await sendVerifyOTP(normalizedEmail, name, otp)
 
       res.status(201).json({
         success: true,
         message: 'OTP sent to your email. Verify to activate your account.',
-        email,
+        email: normalizedEmail,
       })
     } catch (err) { next(err) }
   },
@@ -83,9 +100,10 @@ export const authController = {
       if (!email || !otp)
         return res.status(400).json({ success: false, error: 'Email and OTP are required' })
 
-      const user = await User.findOne({ email })
+      const normalizedEmail = normalizeEmail(email)
+      const user = await User.findOne({ email: normalizedEmail })
       if (!user)
-        return res.status(404).json({ success: false, error: 'No account found with this email' })
+        return res.status(404).json({ success: false, error: 'If an account exists, an OTP has been sent.' })
 
       if (user.isVerified)
         return res.status(400).json({ success: false, error: 'Account is already verified. Please sign in.' })
@@ -102,7 +120,8 @@ export const authController = {
         return res.status(400).json({ success: false, error: 'OTP expired. Request a new one.' })
       }
 
-      if (user.otp !== otp)
+      const isValid = await compareOtp(otp, user.otp)
+      if (!isValid)
         return res.status(400).json({ success: false, error: 'Incorrect OTP. Try again.' })
 
       // Clear OTP + mark verified
@@ -128,9 +147,10 @@ export const authController = {
       if (!email || !type)
         return res.status(400).json({ success: false, error: 'Email and type are required' })
 
-      const user = await User.findOne({ email })
+      const normalizedEmail = normalizeEmail(email)
+      const user = await User.findOne({ email: normalizedEmail })
       if (!user)
-        return res.status(404).json({ success: false, error: 'No account found with this email' })
+        return res.status(404).json({ success: false, error: 'If an account exists, an OTP has been sent.' })
 
       if (type === 'verify' && user.isVerified)
         return res.status(400).json({ success: false, error: 'Account is already verified.' })
@@ -148,13 +168,13 @@ export const authController = {
       }
 
       const otp = generateOTP()
-      user.otp       = otp
+      user.otp       = await hashOtp(otp)
       user.otpExpiry = new Date(Date.now() + OTP_TTL)
       user.otpType   = type
       await user.save()
 
-      if (type === 'verify') await sendVerifyOTP(email, user.name, otp)
-      else                   await sendResetOTP(email, user.name, otp)
+      if (type === 'verify') await sendVerifyOTP(normalizedEmail, user.name, otp)
+      else                   await sendResetOTP(normalizedEmail, user.name, otp)
 
       res.json({ success: true, message: 'New OTP sent to your email.' })
     } catch (err) { next(err) }
@@ -167,7 +187,8 @@ export const authController = {
       if (!email)
         return res.status(400).json({ success: false, error: 'Email is required' })
 
-      const user = await User.findOne({ email })
+      const normalizedEmail = normalizeEmail(email)
+      const user = await User.findOne({ email: normalizedEmail })
 
       // Always return success — don't reveal if email exists (security)
       if (!user || !user.isVerified) {
@@ -186,17 +207,49 @@ export const authController = {
       }
 
       const otp = generateOTP()
-      user.otp       = otp
+      user.otp       = await hashOtp(otp)
       user.otpExpiry = new Date(Date.now() + OTP_TTL)
       user.otpType   = 'reset'
       await user.save()
 
-      await sendResetOTP(email, user.name, otp)
+      await sendResetOTP(normalizedEmail, user.name, otp)
 
       res.json({
         success: true,
         message: 'If an account exists for this email, an OTP has been sent.',
       })
+    } catch (err) { next(err) }
+  },
+
+  // ── Verify Reset OTP — check-only, does NOT clear the OTP ───────
+  // Lets VerifyOTP.jsx show "Incorrect OTP" inline instead of silently
+  // navigating to ResetPassword and only failing at final submit.
+  // resetPassword() re-verifies + actually consumes the OTP on submit.
+  async verifyResetOtp(req, res, next) {
+    try {
+      const { email, otp } = req.body
+      if (!email || !otp)
+        return res.status(400).json({ success: false, error: 'Email and OTP are required' })
+
+      const normalizedEmail = normalizeEmail(email)
+      const user = await User.findOne({ email: normalizedEmail })
+      if (!user || !user.isVerified)
+        return res.status(404).json({ success: false, error: 'If an account exists, an OTP has been sent.' })
+
+      if (user.otpType !== 'reset')
+        return res.status(400).json({ success: false, error: 'No password reset was requested for this account' })
+
+      if (!user.otp || !user.otpExpiry)
+        return res.status(400).json({ success: false, error: 'No OTP found. Request a new one.' })
+
+      if (new Date() > user.otpExpiry)
+        return res.status(400).json({ success: false, error: 'OTP expired. Request a new one.' })
+
+      const isValid = await compareOtp(otp, user.otp)
+      if (!isValid)
+        return res.status(400).json({ success: false, error: 'Incorrect OTP. Try again.' })
+
+      res.json({ success: true })
     } catch (err) { next(err) }
   },
 
@@ -207,10 +260,14 @@ export const authController = {
       if (!email || !otp || !password)
         return res.status(400).json({ success: false, error: 'Email, OTP, and new password are required' })
 
-      if (password.length < 6)
-        return res.status(400).json({ success: false, error: 'Password must be at least 6 characters' })
+      if (!STRONG_PASSWORD.test(password))
+        return res.status(400).json({
+          success: false,
+          error: 'Password must be at least 8 characters and include both letters and numbers',
+        })
 
-      const user = await User.findOne({ email })
+      const normalizedEmail = normalizeEmail(email)
+      const user = await User.findOne({ email: normalizedEmail })
       if (!user || !user.isVerified)
         return res.status(404).json({ success: false, error: 'No verified account found with this email' })
 
@@ -226,7 +283,8 @@ export const authController = {
         return res.status(400).json({ success: false, error: 'OTP expired. Request a new one.' })
       }
 
-      if (user.otp !== otp)
+      const isValid = await compareOtp(otp, user.otp)
+      if (!isValid)
         return res.status(400).json({ success: false, error: 'Incorrect OTP. Try again.' })
 
       // Update password + clear OTP
@@ -248,9 +306,13 @@ export const authController = {
       if (!email || !password)
         return res.status(400).json({ success: false, error: 'Email and password required' })
 
-      const user = await User.findOne({ email })
+      const normalizedEmail = normalizeEmail(email)
+      const user = await User.findOne({ email: normalizedEmail })
       if (!user)
-        return res.status(401).json({ success: false, error: 'No account found with this email.' })
+        return res.status(401).json({ success: false, error: 'Invalid email or password' })
+
+      if (!user.isVerified)
+        return res.status(403).json({ success: false, error: 'Please verify your email first.' })
 
       // Check lockout
       if (user.lockUntil && user.lockUntil > new Date()) {

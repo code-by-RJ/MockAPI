@@ -73,6 +73,7 @@ router.get('/me',                authenticateToken, authController.me)
 
 // OTP flows
 router.post('/verify-otp',       otpDailyLimiter, otpLimiter,             authController.verifyOtp)
+router.post('/verify-reset-otp', otpResetLimiter,                         authController.verifyResetOtp)
 router.post('/resend-otp',       emailLimiter,                            authController.resendOtp)
 router.post('/forgot-password',  emailLimiter,                            authController.forgotPassword)
 router.post('/reset-password',   passwordResetDailyLimiter, otpResetLimiter, authController.resetPassword)

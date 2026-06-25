@@ -1,6 +1,6 @@
 import React from 'react'
-import { Routes, Route } from 'react-router-dom'
-import { AuthProvider } from './contexts/AuthContext'
+import { Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 
 import Landing        from './pages/Landing'
@@ -19,13 +19,20 @@ import NotFound       from './pages/NotFound'
 // Bug 4 fix: BrowserRouter removed — it lives in main.jsx already (via ToastProvider wrapper)
 // Having two BrowserRouters causes "cannot render Router inside Router" crash
 
+// Item 12: keep already-logged-in users out of /login, /register — bounce to dashboard instead
+function GuestRoute({ children }) {
+  const { user, loading } = useAuth()
+  if (loading) return null
+  return user ? <Navigate to="/dashboard" replace /> : children
+}
+
 export default function App() {
   return (
     <AuthProvider>
       <Routes>
         <Route path="/"                element={<Landing />} />
-        <Route path="/login"           element={<Login />} />
-        <Route path="/register"        element={<Register />} />
+        <Route path="/login"           element={<GuestRoute><Login /></GuestRoute>} />
+        <Route path="/register"        element={<GuestRoute><Register /></GuestRoute>} />
         <Route path="/verify-otp"      element={<VerifyOTP />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password"  element={<ResetPassword />} />

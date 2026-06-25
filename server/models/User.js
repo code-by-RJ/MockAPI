@@ -2,8 +2,8 @@ import mongoose from 'mongoose'
 
 const userSchema = new mongoose.Schema(
   {
-    name:       { type: String,  required: true },
-    email:      { type: String,  required: true, unique: true },
+    name:       { type: String,  required: true, maxlength: 50, trim: true },
+    email:      { type: String,  required: true, unique: true, maxlength: 100 },
     password:   { type: String,  required: true },
     isVerified:    { type: Boolean, default: false },
     // OTP fields — shared for both verify + reset flows

@@ -10,6 +10,7 @@ const C = {
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const STRONG_PASSWORD = /^(?=.*[a-zA-Z])(?=.*\d).{8,}$/
 
 function validate(fields) {
   const errs = {}
@@ -17,8 +18,9 @@ function validate(fields) {
   else if (fields.name.trim().length < 2) errs.name     = 'Name must be at least 2 characters'
   if (!fields.email.trim())               errs.email    = 'Email is required'
   else if (!EMAIL_RE.test(fields.email))  errs.email    = 'Enter a valid email address'
-  if (!fields.password)                   errs.password = 'Password is required'
-  else if (fields.password.length < 6)    errs.password = 'Password must be at least 6 characters'
+  if (!fields.password)                          errs.password = 'Password is required'
+  else if (!STRONG_PASSWORD.test(fields.password)) errs.password = 'Min 8 characters with at least 1 letter and 1 number'
+  else if (passwordStrength(fields.password).level < 2) errs.password = 'Choose a stronger password'
   return errs
 }
 
@@ -226,7 +228,7 @@ export default function Register() {
               </div>
               <div style={{ position: 'relative' }}>
                 <input
-                  type={showPassword ? 'text' : 'password'} placeholder="Min. 6 characters" value={fields.password}
+                  type={showPassword ? 'text' : 'password'} placeholder="Min. 8 characters, 1 letter & 1 number" value={fields.password}
                   onChange={set('password')} onBlur={touch('password')} autoComplete="new-password"
                   style={{
                     width: '100%', boxSizing: 'border-box',

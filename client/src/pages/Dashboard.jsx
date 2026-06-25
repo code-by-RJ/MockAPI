@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import api from '../lib/axios'
-import { useToast } from '../context/ToastContext'
+import { useToast } from '../contexts/ToastContext'
 import { CardSkeleton } from '../components/Skeleton'
 import ConfirmModal from '../components/ConfirmModal'
 
@@ -132,7 +132,7 @@ export default function Dashboard() {
       setProjects(p => [{ ...res.data.project, resourceCount: 0 }, ...p])
       closeModal()
     } catch (err) {
-      const msg = err.response?.data?.message || ''
+      const msg = err.response?.data?.error || ''
       if (msg.toLowerCase().includes('limit')) {
         setNameError(msg)
       } else if (msg.toLowerCase().includes('slug') || msg.toLowerCase().includes('exists')) {

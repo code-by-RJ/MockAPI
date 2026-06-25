@@ -34,9 +34,9 @@ router.get('/', authenticateToken, async (req, res) => {
     const projects = await Project.find({ owner: req.user.userId }).sort({ createdAt: -1 })
     const counts   = await Promise.all(projects.map(p => Resource.countDocuments({ projectId: p._id })))
     const data     = projects.map((p, i) => ({ ...p.toObject(), resourceCount: counts[i] }))
-    res.json({ data })
+    res.json({ success: true, data })
   } catch (err) {
-    res.status(500).json({ message: err.message })
+    res.status(500).json({ success: false, error: err.message })
   }
 })
 
@@ -44,20 +44,20 @@ router.get('/', authenticateToken, async (req, res) => {
 router.post('/', authenticateToken, async (req, res) => {
   try {
     const { name, isPublic = false } = req.body
-    if (!name) return res.status(400).json({ message: 'Project name is required' })
+    if (!name) return res.status(400).json({ success: false, error: 'Project name is required' })
 
     // Priority 4 — DB overflow protection: max 5 projects per user
     const projectCount = await Project.countDocuments({ owner: req.user.userId })
     if (projectCount >= 5) {
-      return res.status(403).json({ message: 'Project limit reached (max 5)' })
+      return res.status(403).json({ success: false, error: 'Project limit reached (max 5)' })
     }
 
     const slug    = await uniqueSlug(name)
     const project = await Project.create({ name, slug, owner: req.user.userId, isPublic })
 
-    res.status(201).json({ message: 'Project created', project })
+    res.status(201).json({ success: true, message: 'Project created', project })
   } catch (err) {
-    res.status(500).json({ message: err.message })
+    res.status(500).json({ success: false, error: err.message })
   }
 })
 
@@ -67,17 +67,17 @@ router.patch('/:slug', authenticateToken, async (req, res) => {
     const { name, isPublic } = req.body
 
     if (name === undefined && isPublic === undefined) {
-      return res.status(400).json({ message: 'Nothing to update — provide name and/or isPublic' })
+      return res.status(400).json({ success: false, error: 'Nothing to update — provide name and/or isPublic' })
     }
 
     const project = await Project.findOne({ slug: req.params.slug, owner: req.user.userId })
-    if (!project) return res.status(404).json({ message: 'Project not found' })
+    if (!project) return res.status(404).json({ success: false, error: 'Project not found' })
 
     let slugChanged = false
 
     if (name !== undefined) {
       const trimmed = name.trim()
-      if (!trimmed) return res.status(400).json({ message: 'Project name cannot be empty' })
+      if (!trimmed) return res.status(400).json({ success: false, error: 'Project name cannot be empty' })
 
       if (trimmed !== project.name) {
         project.name = trimmed
@@ -99,12 +99,13 @@ router.patch('/:slug', authenticateToken, async (req, res) => {
     invalidate(project.slug)  // always invalidate current slug post-save
 
     res.json({
+      success: true,
       message: 'Project updated',
       project,
       slugChanged,
     })
   } catch (err) {
-    res.status(500).json({ message: err.message })
+    res.status(500).json({ success: false, error: err.message })
   }
 })
 
@@ -112,7 +113,7 @@ router.patch('/:slug', authenticateToken, async (req, res) => {
 router.delete('/:slug', authenticateToken, async (req, res) => {
   try {
     const project = await Project.findOneAndDelete({ slug: req.params.slug, owner: req.user.userId })
-    if (!project) return res.status(404).json({ message: 'Project not found' })
+    if (!project) return res.status(404).json({ success: false, error: 'Project not found' })
 
     // Cascade delete everything owned by this project
     const resources = await Resource.find({ projectId: project._id })
@@ -125,9 +126,9 @@ router.delete('/:slug', authenticateToken, async (req, res) => {
     }
 
     invalidate(req.params.slug)
-    res.json({ message: 'Project deleted' })
+    res.json({ success: true, message: 'Project deleted' })
   } catch (err) {
-    res.status(500).json({ message: err.message })
+    res.status(500).json({ success: false, error: err.message })
   }
 })
 

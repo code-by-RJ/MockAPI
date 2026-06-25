@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import api from '../lib/axios'
 
 const C = {
@@ -10,6 +10,7 @@ const C = {
 }
 const FONTS = ''
 const ANIM  = `@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}.fade-up{animation:fadeUp 0.35s ease forwards}`
+const STRONG_PASSWORD = /^(?=.*[a-zA-Z])(?=.*\d).{8,}$/
 
 function passwordStrength(pw) {
   if (!pw) return { level: 0, label: '', color: '' }
@@ -26,11 +27,11 @@ function passwordStrength(pw) {
 }
 
 export default function ResetPassword() {
-  const [searchParams] = useSearchParams()
-  const navigate       = useNavigate()
+  const location = useLocation()
+  const navigate = useNavigate()
 
-  const email = searchParams.get('email') || ''
-  const otp   = searchParams.get('otp')   || ''
+  const email = location.state?.email || ''
+  const otp   = location.state?.otp   || ''
 
   const [password, setPassword]   = useState('')
   const [confirm,  setConfirm]    = useState('')
@@ -61,9 +62,15 @@ export default function ResetPassword() {
     setTouched(p => ({ ...p, password: true, confirm: true }))
   }
 
-  const pwError  = !password ? 'Password is required' : password.length < 6 ? 'Minimum 6 characters' : ''
-  const cfmError = !confirm  ? 'Please confirm your password' : confirm !== password ? 'Passwords do not match' : ''
   const strength = passwordStrength(password)
+  const pwError  = !password
+    ? 'Password is required'
+    : !STRONG_PASSWORD.test(password)
+      ? 'Min 8 characters with at least 1 letter and 1 number'
+      : strength.level < 2
+        ? 'Choose a stronger password'
+        : ''
+  const cfmError = !confirm  ? 'Please confirm your password' : confirm !== password ? 'Passwords do not match' : ''
 
   const touch = (key) => () => setTouched(p => ({ ...p, [key]: true }))
 
@@ -164,7 +171,7 @@ export default function ResetPassword() {
               </div>
               <div style={{ position: 'relative' }}>
                 <input
-                  type={showPassword ? 'text' : 'password'} placeholder="Min. 6 characters"
+                  type={showPassword ? 'text' : 'password'} placeholder="Min. 8 characters, 1 letter & 1 number"
                   value={password} onChange={e => { setPassword(e.target.value); setApiError('') }}
                   onBlur={touch('password')} autoComplete="new-password"
                   style={{ width: '100%', background: touched.password && pwError ? 'rgba(239,68,68,0.05)' : 'rgba(0,0,0,0.3)', border: `1px solid ${touched.password && pwError ? 'rgba(239,68,68,0.5)' : touched.password && !pwError && password ? 'rgba(34,197,94,0.4)' : C.border}`, borderRadius: 10, padding: '0.65rem 2.5rem 0.65rem 1rem', fontSize: 14, color: C.fg, fontFamily: "'DM Sans', sans-serif", transition: 'border-color 150ms' }}

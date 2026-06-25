@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, Link }                   from 'react-router-dom'
 import api from '../lib/axios'
-import { useToast }        from '../context/ToastContext'
+import { useToast }        from '../contexts/ToastContext'
 import { TableRowSkeleton } from '../components/Skeleton'
 import RequestLogsPanel    from '../components/RequestLogsPanel'
 import ConfirmModal        from '../components/ConfirmModal'
@@ -134,7 +134,7 @@ export default function ProjectDetail() {
       toast(`Resource "${newName.toLowerCase().trim()}" created`, 'success')
       closeModal(); fetchData()
     } catch (err) {
-      const msg = err.response?.data?.message || ''
+      const msg = err.response?.data?.error || ''
       if (msg.toLowerCase().includes('limit')) {
         toast(msg, 'error'); closeModal()
       } else if (msg.toLowerCase().includes('exists') || msg.toLowerCase().includes('duplicate')) {
@@ -174,7 +174,7 @@ export default function ProjectDetail() {
         setRecordCounts(c => ({ ...c, [resourceName]: data.total ?? 10 }))
       } catch { setRecordCounts(c => ({ ...c, [resourceName]: 10 })) }
     } catch (err) {
-      const msg = err.response?.data?.message || 'Failed to re-seed'
+      const msg = err.response?.data?.error || 'Failed to re-seed'
       toast(msg, 'error')
     } finally {
       setSeeding(s => ({ ...s, [resourceName]: false }))

@@ -11,12 +11,12 @@ import { invalidate }       from '../services/cacheService.js'
 export const getResources = async (req, res) => {
   try {
     const project = await Project.findOne({ slug: req.params.slug, owner: req.user.userId })
-    if (!project) return res.status(404).json({ message: 'Project not found' })
+    if (!project) return res.status(404).json({ success: false, error: 'Project not found' })
 
     const resources = await Resource.find({ projectId: project._id }).sort({ createdAt: -1 })
-    res.json({ data: resources })
+    res.json({ success: true, data: resources })
   } catch (err) {
-    res.status(500).json({ message: err.message })
+    res.status(500).json({ success: false, error: err.message })
   }
 }
 
@@ -24,15 +24,15 @@ export const getResources = async (req, res) => {
 export const createResource = async (req, res) => {
   try {
     const { name, schema = [] } = req.body
-    if (!name) return res.status(400).json({ message: 'Resource name is required' })
+    if (!name) return res.status(400).json({ success: false, error: 'Resource name is required' })
 
     const project = await Project.findOne({ slug: req.params.slug, owner: req.user.userId })
-    if (!project) return res.status(404).json({ message: 'Project not found' })
+    if (!project) return res.status(404).json({ success: false, error: 'Project not found' })
 
     // Priority 4 — DB overflow protection: max 10 resources per project
     const resourceCount = await Resource.countDocuments({ projectId: project._id })
     if (resourceCount >= 10) {
-      return res.status(403).json({ message: 'Resource limit reached (max 10 per project)' })
+      return res.status(403).json({ success: false, error: 'Resource limit reached (max 10 per project)' })
     }
 
     const resource = await Resource.create({
@@ -63,12 +63,12 @@ export const createResource = async (req, res) => {
       }
     }
 
-    res.status(201).json({ message: 'Resource created', resource })
+    res.status(201).json({ success: true, message: 'Resource created', resource })
   } catch (err) {
     if (err.code === 11000) {
-      return res.status(409).json({ message: 'Resource name already exists in this project' })
+      return res.status(409).json({ success: false, error: 'Resource name already exists in this project' })
     }
-    res.status(500).json({ message: err.message })
+    res.status(500).json({ success: false, error: err.message })
   }
 }
 
@@ -77,18 +77,18 @@ export const updateResource = async (req, res) => {
   try {
     const { schema } = req.body
     const project = await Project.findOne({ slug: req.params.slug, owner: req.user.userId })
-    if (!project) return res.status(404).json({ message: 'Project not found' })
+    if (!project) return res.status(404).json({ success: false, error: 'Project not found' })
 
     const resource = await Resource.findOneAndUpdate(
       { projectId: project._id, name: req.params.name },
       { schema },
       { new: true }
     )
-    if (!resource) return res.status(404).json({ message: 'Resource not found' })
+    if (!resource) return res.status(404).json({ success: false, error: 'Resource not found' })
 
-    res.json({ message: 'Resource updated', resource })
+    res.json({ success: true, message: 'Resource updated', resource })
   } catch (err) {
-    res.status(500).json({ message: err.message })
+    res.status(500).json({ success: false, error: err.message })
   }
 }
 
@@ -96,10 +96,10 @@ export const updateResource = async (req, res) => {
 export const deleteResource = async (req, res) => {
   try {
     const project = await Project.findOne({ slug: req.params.slug, owner: req.user.userId })
-    if (!project) return res.status(404).json({ message: 'Project not found' })
+    if (!project) return res.status(404).json({ success: false, error: 'Project not found' })
 
     const resource = await Resource.findOneAndDelete({ projectId: project._id, name: req.params.name })
-    if (!resource) return res.status(404).json({ message: 'Resource not found' })
+    if (!resource) return res.status(404).json({ success: false, error: 'Resource not found' })
 
     // Cascade delete data + logs for this resource
     await Promise.all([
@@ -108,9 +108,9 @@ export const deleteResource = async (req, res) => {
     ])
 
     invalidate(req.params.slug)
-    res.json({ message: 'Resource deleted' })
+    res.json({ success: true, message: 'Resource deleted' })
   } catch (err) {
-    res.status(500).json({ message: err.message })
+    res.status(500).json({ success: false, error: err.message })
   }
 }
 
@@ -123,7 +123,7 @@ export const updateResourceConfig = async (req, res) => {
     const { errorRate, delay } = req.body
 
     const project = await Project.findOne({ slug, owner: req.user.userId })
-    if (!project) return res.status(404).json({ message: 'Project not found' })
+    if (!project) return res.status(404).json({ success: false, error: 'Project not found' })
 
     const update = {}
     if (errorRate !== undefined) update.errorRate = Math.min(1, Math.max(0, Number(errorRate)))
@@ -134,11 +134,11 @@ export const updateResourceConfig = async (req, res) => {
       update,
       { new: true }
     )
-    if (!resource) return res.status(404).json({ message: 'Resource not found' })
+    if (!resource) return res.status(404).json({ success: false, error: 'Resource not found' })
 
-    res.json({ message: 'Config updated', resource })
+    res.json({ success: true, message: 'Config updated', resource })
   } catch (err) {
-    res.status(500).json({ message: err.message })
+    res.status(500).json({ success: false, error: err.message })
   }
 }
 
@@ -146,16 +146,16 @@ export const updateResourceConfig = async (req, res) => {
 export const getProjectLogs = async (req, res) => {
   try {
     const project = await Project.findOne({ slug: req.params.slug, owner: req.user.userId })
-    if (!project) return res.status(404).json({ message: 'Project not found' })
+    if (!project) return res.status(404).json({ success: false, error: 'Project not found' })
 
     const logs = await RequestLog
       .find({ projectId: project._id })
       .sort({ timestamp: -1 })
       .limit(100)
 
-    res.json({ data: logs })
+    res.json({ success: true, data: logs })
   } catch (err) {
-    res.status(500).json({ message: err.message })
+    res.status(500).json({ success: false, error: err.message })
   }
 }
 
@@ -169,13 +169,13 @@ export const seedResource = async (req, res) => {
     const { slug, name } = req.params
 
     const project = await Project.findOne({ slug, owner: req.user.userId })
-    if (!project) return res.status(404).json({ message: 'Project not found' })
+    if (!project) return res.status(404).json({ success: false, error: 'Project not found' })
 
     const resource = await Resource.findOne({ projectId: project._id, name })
-    if (!resource) return res.status(404).json({ message: 'Resource not found' })
+    if (!resource) return res.status(404).json({ success: false, error: 'Resource not found' })
 
     if (!resource.schema || resource.schema.length === 0) {
-      return res.status(400).json({ message: 'Resource has no schema fields — add fields before seeding' })
+      return res.status(400).json({ success: false, error: 'Resource has no schema fields — add fields before seeding' })
     }
 
     // Replace all existing records for this resource
@@ -190,8 +190,8 @@ export const seedResource = async (req, res) => {
       }))
     )
 
-    res.json({ message: `Re-seeded "${name}" with 10 fresh records`, count: 10 })
+    res.json({ success: true, message: `Re-seeded "${name}" with 10 fresh records`, count: 10 })
   } catch (err) {
-    res.status(500).json({ message: err.message })
+    res.status(500).json({ success: false, error: err.message })
   }
 }

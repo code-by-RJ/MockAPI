@@ -81,13 +81,23 @@ export default function VerifyOTP() {
     if (loading) return
     setError('')
 
+    setLoading(true)
+
     if (type === 'reset') {
-      // No API call — pass OTP to ResetPassword page where actual verify + update happens
-      navigate(`/reset-password?email=${encodeURIComponent(email)}&otp=${code}`)
+      try {
+        await api.post('/auth/verify-reset-otp', { email, otp: code })
+        // OTP confirmed valid — pass to ResetPassword via state (not URL) so
+        // back/refresh can't reopen the reset form with stale params.
+        navigate('/reset-password', { state: { email, otp: code } })
+      } catch (err) {
+        const msg = err.response?.data?.error || 'Verification failed. Try again.'
+        setError(msg)
+        setOtp(['', '', '', '', '', ''])
+        inputRefs.current[0]?.focus()
+      } finally { setLoading(false) }
       return
     }
 
-    setLoading(true)
     try {
       const res = await api.post('/auth/verify-otp', { email, otp: code })
       loginWithToken(res.data.token, res.data.user)
