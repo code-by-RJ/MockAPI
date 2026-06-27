@@ -103,6 +103,9 @@ app.use(mongoSanitize())
 // ── Health (BEFORE engine wildcard) ─────────────────────────────────
 app.get('/api/health', (_req, res) => res.json({ success: true, status: 'ok' }))
 
+// Root redirect — visiting api.spacego.online in a browser shows the frontend 404 page
+app.get('/', (_req, res) => res.redirect('https://mockapi.spacego.online/404'))
+
 // ── Routes (order is CRITICAL) ──────────────────────────────────────
 app.use('/api/auth',                     authRoutes)
 app.use('/api/projects',                 projectRoutes)
