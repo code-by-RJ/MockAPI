@@ -75,7 +75,12 @@ export default function EndpointViewer() {
   const [snippetTab, setSnippetTab] = useState('fetch')
   const [urlCopied, setUrlCopied] = useState(null)
 
-  const BASE_URL  = `${import.meta.env.VITE_API_URL || window.location.origin}/api/${slug}`
+  // VITE_API_URL already ends with "/api" (e.g. https://server.onrender.com/api)
+  // Strip trailing /api before adding our own, so we don't get /api/api/:slug
+  const apiOrigin = import.meta.env.VITE_API_URL
+    ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '')
+    : window.location.origin
+  const BASE_URL  = `${apiOrigin}/api/${slug}`
   const endpoints = buildEndpoints(BASE_URL, name)
 
   useEffect(() => {
@@ -122,7 +127,7 @@ export default function EndpointViewer() {
 
         {/* Base URL */}
         <div style={{ display:'flex', alignItems:'center', gap:12, padding:'0.75rem 1rem', borderRadius:10, border:`1px solid ${C.border}`, background:'rgba(255,255,255,0.02)' }}>
-          <span style={{ fontSize:10, fontWeight:600, color:'rgba(255,255,255,0.3)', textTransform:'uppercase', letterSpacing:'0.08em', flexShrink:0, fontFamily:"'Space Grotesk',sans-serif" }}>Base URL</span>
+          <span style={{ fontSize:10, fontWeight:600, color:'rgba(255,255,255,0.6)', textTransform:'uppercase', letterSpacing:'0.08em', flexShrink:0, fontFamily:"'Space Grotesk',sans-serif" }}>Base URL</span>
           <span style={{ fontFamily:"'DM Mono',monospace", fontSize:13, color:'rgba(255,255,255,0.6)', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{BASE_URL}</span>
           <button onClick={()=>copyUrl(BASE_URL)} style={{ fontSize:11, padding:'0.25rem 0.65rem', borderRadius:6, border:`1px solid ${C.border}`, background:'transparent', color:C.muted, cursor:'pointer', transition:'color 150ms', flexShrink:0, fontFamily:"'DM Sans',sans-serif" }}>⎘ Copy</button>
         </div>

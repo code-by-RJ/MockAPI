@@ -43,7 +43,10 @@ export default function ProjectDetail() {
   const [recordCounts, setRecordCounts] = useState({})  // { [resourceName]: number }
   const [seeding, setSeeding]           = useState({})   // { [resourceName]: boolean }
 
-  const BASE_URL = `${import.meta.env.VITE_API_URL || window.location.origin}/api/${slug}`
+  const apiOrigin = import.meta.env.VITE_API_URL
+    ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '')
+    : window.location.origin
+  const BASE_URL = `${apiOrigin}/api/${slug}`
 
   // Fetch record counts from engine API — now requires JWT since private
   // projects (isPublic: false) are guarded at the engine pipeline level.
@@ -254,7 +257,7 @@ export default function ProjectDetail() {
               resources.map(r => (
                 <div key={r.name} className="row-hover" style={{ display:'flex', alignItems:'center', gap:16, padding:'0.75rem 1rem', borderBottom:`1px solid rgba(255,255,255,0.04)`, transition:'background 150ms', minWidth:580 }}>
                   <span style={{ width:144, fontFamily:"'DM Mono',monospace", fontSize:13, color:C.fg, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{r.name}</span>
-                  <span style={{ flex:1, fontFamily:"'DM Mono',monospace", fontSize:11, color:'rgba(255,255,255,0.3)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{BASE_URL}/{r.name}</span>
+                  <span style={{ flex:1, fontFamily:"'DM Mono',monospace", fontSize:11, color:'rgba(255,255,255,0.6)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{BASE_URL}/{r.name}</span>
                   <span style={{ width:56, textAlign:'center', fontSize:12, color:'rgba(255,255,255,0.4)' }}>{r.schema?.length ?? 0}</span>
                   {/* Records count — fetched from engine API */}
                   <span style={{ width:70, textAlign:'center', fontSize:12, fontFamily:"'DM Mono',monospace", color: recordCounts[r.name] !== undefined ? C.accent : 'rgba(255,255,255,0.2)' }}>
