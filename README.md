@@ -94,10 +94,9 @@ MONGODB_URI=mongodb://localhost:27017/mockapi
 JWT_SECRET=your_jwt_secret_here
 CLIENT_URL=http://localhost:5173
 RESEND_API_KEY=your_resend_api_key_here
-FROM_EMAIL=noreply@yourdomain.com
 ```
 
-> `JWT_SECRET`, `RESEND_API_KEY`, and `FROM_EMAIL` are required in all environments.  
+> `JWT_SECRET` and `RESEND_API_KEY` are required in all environments.  
 > `MONGODB_URI` and `CLIENT_URL` are required in production — server exits on start if missing.
 
 ### Running Locally
@@ -143,7 +142,7 @@ POST   /api/auth/reset-password        { email, otp, password }
 ```
 PUT    /api/auth/profile               { name }
 PUT    /api/auth/change-password       { currentPassword, newPassword }
-POST   /api/auth/request-email-change  { newEmail }
+POST   /api/auth/request-email-change  { currentPassword, newEmail }
 POST   /api/auth/confirm-email-change  { otp }
 ```
 
@@ -218,7 +217,6 @@ JWT_SECRET=<strong-random-secret>
 CLIENT_URL=https://mockapi.spacego.online
 PORT=8000
 RESEND_API_KEY=<your-resend-key>
-FROM_EMAIL=noreply@mail.spacego.online
 ```
 
 ### Frontend — Vercel
