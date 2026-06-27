@@ -231,20 +231,31 @@ RESEND_API_KEY=<your-resend-key>
 **Env var on Vercel:**
 
 ```
-VITE_API_URL=https://<your-render-url>.onrender.com/api
+VITE_API_URL=https://api.spacego.online/api
 ```
 
 ### DNS — Hostinger
 
 ```
 CNAME  mockapi  →  cname.vercel-dns.com
+CNAME  api      →  mockapi-backend-kri9.onrender.com
 ```
 
 ---
 
 ## Screenshots
 
-> Coming soon after deploy.
+### Landing Page
+![Landing Page](client/src/screenshots/landing.png)
+
+### Dashboard
+![Dashboard](client/src/screenshots/dashboard.png)
+
+### Schema Builder
+![Schema Builder](client/src/screenshots/schema-builder.png)
+
+### Endpoint Viewer
+![Endpoint Viewer](client/src/screenshots/endpoints.png)
 
 ---
 
