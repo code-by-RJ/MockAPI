@@ -221,7 +221,7 @@ export default function SchemaBuilder() {
                         ...inputBase,
                         flex:1, minWidth:0,
                         borderColor: field.fieldName && !isValidFieldName(field.fieldName) ? C.red
-                                    : field.fieldName && isValidFieldName(field.fieldName)  ? 'rgba(34,197,94,0.5)'
+                                    : field.fieldName && isValidFieldName(field.fieldName)  ? 'rgba(34,197,94,0.25)'
                                     : C.border
                       }}
                     />
