@@ -68,6 +68,178 @@ const FAQS = [
   { q: "How is it different from other mocking tools?", a: "MockAPI focuses on developer speed — no YAML config, no local setup. Create endpoints visually, seed with Faker data, simulate errors, and get logs in real-time. All from a browser." },
 ];
 
+
+/* ── DEMO MODAL DATA ── */
+const DEMO_ENDPOINTS = [
+  {
+    method: 'GET', label: 'List users', path: '/api/demo/users',
+    status: 200, statusText: 'OK',
+    lines: [
+      '{ "data": [',
+      '    { "id": "usr_01", "name": "Priya Sharma", "role": "admin" },',
+      '    { "id": "usr_02", "name": "Arjun Dev",    "role": "member" },',
+      '    { "id": "usr_03", "name": "Meera Nair",   "role": "member" }',
+      '  ],',
+      '  "total": 48, "page": 1, "latency": "11ms"',
+      '}',
+    ],
+  },
+  {
+    method: 'POST', label: 'Create order', path: '/api/demo/orders',
+    status: 201, statusText: 'Created',
+    lines: [
+      '{',
+      '  "message": "Order created successfully",',
+      '  "data": {',
+      '    "id": "ord_xK92p",',
+      '    "product": "Mechanical Keyboard",',
+      '    "quantity": 2,',
+      '    "status": "pending",',
+      '    "price": 4299',
+      '  }',
+      '}',
+    ],
+  },
+  {
+    method: 'DELETE', label: 'Delete user', path: '/api/demo/users/:id',
+    status: 200, statusText: 'OK',
+    lines: [
+      '{',
+      '  "message": "User deleted successfully",',
+      '  "deleted": "usr_03"',
+      '}',
+    ],
+  },
+]
+
+const METHOD_C = { GET: '#22C55E', POST: '#60A5FA', DELETE: '#EF4444', PUT: '#FBBF24' }
+
+function colorLine(str) {
+  const re = /("(?:[^"\\]|\\.)*")(\s*:)?|(\b\d+\b)|([{}\[\],])/g
+  const parts = []; let last = 0, m, key = 0
+  while ((m = re.exec(str)) !== null) {
+    if (m.index > last) parts.push(<span key={key++} style={{ color: 'rgba(255,255,255,0.25)' }}>{str.slice(last, m.index)}</span>)
+    if (m[2] !== undefined) {
+      parts.push(<span key={key++} style={{ color: '#60A5FA' }}>{m[1]}</span>)
+      parts.push(<span key={key++} style={{ color: 'rgba(255,255,255,0.25)' }}>{m[2]}</span>)
+    } else if (m[1]) {
+      parts.push(<span key={key++} style={{ color: '#22C55E' }}>{m[1]}</span>)
+    } else if (m[3]) {
+      parts.push(<span key={key++} style={{ color: '#FBBF24' }}>{m[3]}</span>)
+    } else {
+      parts.push(<span key={key++} style={{ color: 'rgba(255,255,255,0.2)' }}>{m[4]}</span>)
+    }
+    last = m.index + m[0].length
+  }
+  if (last < str.length) parts.push(<span key={key++} style={{ color: 'rgba(255,255,255,0.25)' }}>{str.slice(last)}</span>)
+  return parts
+}
+
+function DemoModal({ onClose }) {
+  const [active, setActive]           = useState(0)
+  const [phase, setPhase]             = useState('idle')   // 'loading' | 'done'
+  const [visibleLines, setVisibleLines] = useState(0)
+  const sessionRef = useRef(0)
+
+  const run = (idx) => {
+    const session = ++sessionRef.current
+    setActive(idx); setPhase('loading'); setVisibleLines(0)
+    setTimeout(() => {
+      if (sessionRef.current !== session) return
+      setPhase('done')
+      DEMO_ENDPOINTS[idx].lines.forEach((_, i) => {
+        setTimeout(() => {
+          if (sessionRef.current !== session) return
+          setVisibleLines(i + 1)
+        }, i * 80)
+      })
+    }, 500)
+  }
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    run(0)
+    const handler = (e) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', handler)
+    return () => {
+      document.body.style.overflow = ''
+      window.removeEventListener('keydown', handler)
+    }
+  }, [])
+
+  const ep = DEMO_ENDPOINTS[active]
+  const mc = METHOD_C[ep.method]
+
+  return (
+    <div onClick={e => { if (e.target === e.currentTarget) onClose() }}
+      style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+      <div style={{ width: '100%', maxWidth: 660, background: '#1E293B', border: '1px solid #334155', borderRadius: 16, overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.65)' }}>
+
+        {/* Title bar */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1.25rem', background: '#272F42', borderBottom: '1px solid #334155' }}>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <span style={{ width: 12, height: 12, borderRadius: '50%', background: '#EF4444', display: 'inline-block' }}/>
+            <span style={{ width: 12, height: 12, borderRadius: '50%', background: '#FBBF24', display: 'inline-block' }}/>
+            <span style={{ width: 12, height: 12, borderRadius: '50%', background: '#22C55E', display: 'inline-block' }}/>
+          </div>
+          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: '#94A3B8' }}>MockAPI — Live Demo</span>
+          <button onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', display: 'flex', alignItems: 'center', padding: 2, transition: 'color 150ms' }}
+            onMouseEnter={e => e.currentTarget.style.color = '#F8FAFC'}
+            onMouseLeave={e => e.currentTarget.style.color = '#94A3B8'}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        {/* Endpoint tabs */}
+        <div style={{ display: 'flex', gap: 6, padding: '0.75rem 1.25rem', borderBottom: '1px solid #334155', overflowX: 'auto', background: 'rgba(0,0,0,0.15)' }}>
+          {DEMO_ENDPOINTS.map((d, i) => (
+            <button key={i} onClick={() => run(i)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0.3rem 0.8rem', borderRadius: 8, border: `1px solid ${active === i ? METHOD_C[d.method] + '55' : '#334155'}`, background: active === i ? METHOD_C[d.method] + '15' : 'transparent', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 150ms', flexShrink: 0 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, fontFamily: "'DM Mono', monospace", color: METHOD_C[d.method] }}>{d.method}</span>
+              <span style={{ fontSize: 12, color: active === i ? '#F8FAFC' : '#94A3B8', fontFamily: "'DM Mono', monospace" }}>{d.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* URL bar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0.65rem 1.25rem', borderBottom: '1px solid #334155', background: 'rgba(0,0,0,0.25)' }}>
+          <span style={{ flexShrink: 0, fontSize: 10, fontWeight: 700, fontFamily: "'DM Mono', monospace", color: mc, background: mc + '18', border: `1px solid ${mc}33`, padding: '0.15rem 0.45rem', borderRadius: 5 }}>{ep.method}</span>
+          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: 'rgba(255,255,255,0.45)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>api.spacego.online{ep.path}</span>
+          <span style={{ flexShrink: 0, fontSize: 11, fontFamily: "'DM Mono', monospace", padding: '0.15rem 0.5rem', borderRadius: 6, background: ep.status < 300 ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', color: ep.status < 300 ? '#22C55E' : '#EF4444', border: `1px solid ${ep.status < 300 ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}` }}>{ep.status} {ep.statusText}</span>
+        </div>
+
+        {/* Response body */}
+        <div style={{ padding: '1.25rem', fontFamily: "'DM Mono', monospace", fontSize: 13, lineHeight: 1.9, minHeight: 180, background: 'rgba(0,0,0,0.35)', boxShadow: 'inset 0 0 60px rgba(34,197,94,0.03)' }}>
+          {phase === 'loading' ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#94A3B8' }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22C55E', display: 'inline-block', animation: 'pulse 1s infinite' }}/>
+              Sending request...
+            </div>
+          ) : (
+            <>
+              {ep.lines.slice(0, visibleLines).map((line, i) => (
+                <div key={i} style={{ whiteSpace: 'pre' }}>{colorLine(line)}</div>
+              ))}
+              {phase === 'done' && visibleLines >= ep.lines.length && (
+                <span style={{ display: 'inline-block', width: 8, height: '1em', background: '#22C55E', marginLeft: 2, verticalAlign: 'text-bottom', animation: 'blink 1s step-end infinite', borderRadius: 1 }}/>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1.25rem', borderTop: '1px solid #334155', background: '#272F42' }}>
+          <span style={{ fontSize: 11, color: '#94A3B8', fontFamily: "'DM Sans', sans-serif" }}>No auth · No setup · Free to start</span>
+          <a href="/register" onClick={onClose} style={{ fontSize: 12, padding: '0.4rem 1rem', borderRadius: 8, background: '#22C55E', color: '#0F172A', fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif", display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            Build yours free
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M1 8h14M9 3l6 5-6 5"/></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function FAQItem({ q, a, index }) {
   const [open, setOpen] = useState(false);
   const bodyRef = useRef(null);
@@ -95,6 +267,7 @@ function FAQItem({ q, a, index }) {
 export default function Landing() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [demoOpen, setDemoOpen]   = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -109,6 +282,7 @@ export default function Landing() {
 
   return (
     <>
+      {demoOpen && <DemoModal onClose={() => setDemoOpen(false)} />}
       <style>{`
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html { scroll-behavior: smooth; }
@@ -116,6 +290,7 @@ export default function Landing() {
         h1,h2,h3 { font-family: 'Space Grotesk', sans-serif; }
         a { text-decoration: none; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
         .btn-primary { background: ${C.accent}; color: #0F172A; padding: 0.75rem 1.75rem; border-radius: 10px; font-family: 'Space Grotesk', sans-serif; font-size: 0.95rem; font-weight: 600; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: background 200ms, transform 200ms, box-shadow 200ms; box-shadow: 0 0 20px rgba(34,197,94,0.2); }
         .btn-primary:hover { background: ${C.accentDim}; transform: translateY(-2px); box-shadow: 0 0 30px rgba(34,197,94,0.35); }
         .btn-secondary { background: transparent; color: ${C.fg}; padding: 0.75rem 1.75rem; border-radius: 10px; font-family: 'Space Grotesk', sans-serif; font-size: 0.95rem; font-weight: 500; border: 1px solid ${C.border}; display: inline-flex; align-items: center; gap: 8px; transition: border-color 200ms, background 200ms, transform 200ms; cursor: pointer; }
@@ -175,7 +350,7 @@ export default function Landing() {
         <FadeIn delay={240}>
           <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", justifyContent: "center", marginBottom: "3.5rem" }}>
             <a href="/register" className="btn-primary"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M1 8h14M9 3l6 5-6 5"/></svg>Create your first mock</a>
-            <a href="#features" className="btn-secondary"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="8" cy="8" r="7"/><path d="M6 5.5l5 2.5-5 2.5V5.5z"/></svg>See it in action</a>
+            <button onClick={() => setDemoOpen(true)} className="btn-secondary" style={{ cursor: "pointer" }}><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="8" cy="8" r="7"/><path d="M6 5.5l5 2.5-5 2.5V5.5z"/></svg>See it in action</button>
           </div>
         </FadeIn>
         <FadeIn delay={320}>
