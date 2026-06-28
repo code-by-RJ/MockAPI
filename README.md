@@ -246,16 +246,16 @@ CNAME  api      →  mockapi-backend-kri9.onrender.com
 ## Screenshots
 
 ### Landing Page
-![Landing Page](client/src/screenshots/landing.png)
+![Landing Page](screenshots/landing.png)
 
 ### Dashboard
-![Dashboard](client/src/screenshots/dashboard.png)
+![Dashboard](screenshots/dashboard.png)
 
 ### Schema Builder
-![Schema Builder](client/src/screenshots/schema-builder.png)
+![Schema Builder](screenshots/schema-builder.png)
 
 ### Endpoint Viewer
-![Endpoint Viewer](client/src/screenshots/endpoints.png)
+![Endpoint Viewer](screenshots/endpoints.png)
 
 ---
 

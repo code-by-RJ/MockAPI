@@ -33,28 +33,53 @@ function FieldError({ msg }) {
   )
 }
 
-function ValidatedInput({ type = 'text', placeholder, value, onChange, onBlur, error, touched, label }) {
+function ValidatedInput({ type = 'text', placeholder, value, onChange, onBlur, error, touched, label, onToggleShow, showValue }) {
   const isValid   = touched && !error && value
   const isInvalid = touched && !!error
+  const hasToggle = !!onToggleShow
   return (
     <div>
       <label style={{ display: 'block', fontSize: 12, color: C.muted, marginBottom: 6 }}>{label}</label>
       <div style={{ position: 'relative' }}>
         <input
-          type={type} placeholder={placeholder} value={value}
+          type={hasToggle ? (showValue ? 'text' : 'password') : type}
+          placeholder={placeholder} value={value}
           onChange={onChange} onBlur={onBlur}
           autoComplete={type === 'password' ? 'current-password' : 'email'}
           style={{
             width: '100%', boxSizing: 'border-box',
             background: isInvalid ? 'rgba(239,68,68,0.05)' : 'rgba(0,0,0,0.25)',
             border: `1px solid ${isInvalid ? 'rgba(239,68,68,0.5)' : isValid ? 'rgba(34,197,94,0.4)' : C.border}`,
-            borderRadius: 10, padding: '0.65rem 2.5rem 0.65rem 1rem',
+            borderRadius: 10, padding: `0.65rem ${hasToggle ? '4rem' : '2.5rem'} 0.65rem 1rem`,
             fontSize: 14, color: C.fg, fontFamily: "'DM Sans', sans-serif",
             outline: 'none', transition: 'border-color 150ms',
           }}
         />
-        {isValid && <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: C.accent, pointerEvents: 'none' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>}
-        {isInvalid && <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: C.red, pointerEvents: 'none' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>}
+        {/* Status icon — shifted left when toggle is present */}
+        {isValid && <span style={{ position: 'absolute', right: hasToggle ? 34 : 10, top: '50%', transform: 'translateY(-50%)', color: C.accent, pointerEvents: 'none' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>}
+        {isInvalid && <span style={{ position: 'absolute', right: hasToggle ? 34 : 10, top: '50%', transform: 'translateY(-50%)', color: C.red, pointerEvents: 'none' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>}
+        {/* Eye toggle */}
+        {hasToggle && (
+          <button
+            type="button"
+            onClick={onToggleShow}
+            tabIndex={-1}
+            style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: C.muted, padding: '2px 4px', display: 'flex', alignItems: 'center', transition: 'color 150ms' }}
+            onMouseEnter={e => e.currentTarget.style.color = C.fg}
+            onMouseLeave={e => e.currentTarget.style.color = C.muted}
+            aria-label={showValue ? 'Hide password' : 'Show password'}
+          >
+            {showValue ? (
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>
+              </svg>
+            ) : (
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+              </svg>
+            )}
+          </button>
+        )}
       </div>
       <FieldError msg={isInvalid ? error : ''} />
     </div>
@@ -125,6 +150,7 @@ export default function Login() {
   const [loading, setLoading]     = useState(false)
   const [attemptsLeft, setAttemptsLeft] = useState(null)   // 1 | 2 | null
   const [lockUntil, setLockUntil]       = useState(null)   // Date | null
+  const [showPass, setShowPass]         = useState(false)
   const { login }  = useAuth()
   const navigate   = useNavigate()
 
@@ -251,7 +277,7 @@ export default function Login() {
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }} noValidate>
             <ValidatedInput label="Email" type="email" placeholder="you@example.com" value={fields.email} onChange={set('email')} onBlur={touch('email')} error={errors.email} touched={touched.email} />
-            <ValidatedInput label="Password" type="password" placeholder="••••••••" value={fields.password} onChange={set('password')} onBlur={touch('password')} error={errors.password} touched={touched.password} />
+            <ValidatedInput label="Password" type="password" placeholder="••••••••" value={fields.password} onChange={set('password')} onBlur={touch('password')} error={errors.password} touched={touched.password} onToggleShow={() => setShowPass(p => !p)} showValue={showPass} />
 
             <button type="submit" disabled={loading} style={{ width: '100%', padding: '0.72rem', borderRadius: 10, background: C.accent, color: '#0F172A', fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 14, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, transition: 'background 200ms', marginTop: 4, boxShadow: '0 0 20px rgba(34,197,94,0.2)' }}
               onMouseEnter={e => !loading && (e.currentTarget.style.background = C.accentDim)}

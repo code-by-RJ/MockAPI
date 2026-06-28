@@ -12,7 +12,7 @@ const C = {
   accent: "#22C55E", accentDim: "#16A34A", red: "#EF4444",
 }
 
-function ProjectCard({ project, onDeleteClick }) {
+function ProjectCard({ project, onDeleteClick, onRenameClick }) {
   const { toast } = useToast()
   const [copied, setCopied] = useState(false)
   const BASE_URL = `${import.meta.env.VITE_API_URL || window.location.origin}/api/${project.slug}`
@@ -60,6 +60,12 @@ function ProjectCard({ project, onDeleteClick }) {
         >
           {copied ? '✓ Copied' : '⎘ Copy URL'}
         </button>
+        <button onClick={(e) => { e.preventDefault(); onRenameClick(project) }} title="Rename project" style={{ width: 32, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.muted, cursor: 'pointer', transition: 'color 150ms, border-color 150ms, background 150ms' }}
+          onMouseEnter={e => { e.currentTarget.style.color = C.accent; e.currentTarget.style.borderColor = 'rgba(34,197,94,0.35)'; e.currentTarget.style.background = 'rgba(34,197,94,0.05)' }}
+          onMouseLeave={e => { e.currentTarget.style.color = C.muted; e.currentTarget.style.borderColor = C.border; e.currentTarget.style.background = 'transparent' }}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
         <button onClick={(e) => { e.preventDefault(); onDeleteClick(project) }} style={{ width: 32, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.muted, cursor: 'pointer', fontSize: 13, transition: 'color 150ms, border-color 150ms, background 150ms' }}
           onMouseEnter={e => { e.currentTarget.style.color = C.red; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)'; e.currentTarget.style.background = 'rgba(239,68,68,0.05)' }}
           onMouseLeave={e => { e.currentTarget.style.color = C.muted; e.currentTarget.style.borderColor = C.border; e.currentTarget.style.background = 'transparent' }}
@@ -85,6 +91,12 @@ export default function Dashboard() {
   const [confirmOpen, setConfirmOpen]         = useState(false)
   const [projectToDelete, setProjectToDelete] = useState(null)
   const [deleting, setDeleting]               = useState(false)
+  const [renameOpen, setRenameOpen]           = useState(false)
+  const [projectToRename, setProjectToRename] = useState(null)
+  const [renameValue, setRenameValue]         = useState('')
+  const [renameError, setRenameError]         = useState('')
+  const [renameTouched, setRenameTouched]     = useState(false)
+  const [renaming, setRenaming]               = useState(false)
 
   const fetchProjects = useCallback(async () => {
     try {
@@ -153,6 +165,40 @@ export default function Dashboard() {
       setConfirmOpen(false); setProjectToDelete(null)
     } catch { toast('Failed to delete project', 'error') }
     finally { setDeleting(false) }
+  }
+
+  const handleRenameClick = (project) => {
+    setProjectToRename(project); setRenameValue(project.name); setRenameOpen(true)
+  }
+
+  const closeRenameModal = useCallback(() => {
+    setRenameOpen(false); setProjectToRename(null); setRenameValue(''); setRenameError(''); setRenameTouched(false)
+  }, [])
+
+  useEffect(() => {
+    if (!renameOpen) return
+    const handler = (e) => { if (e.key === 'Escape') closeRenameModal() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [renameOpen, closeRenameModal])
+
+  const handleRenameConfirm = async () => {
+    setRenameTouched(true)
+    const err = validateName(renameValue)
+    if (err) { setRenameError(err); return }
+    if (renameValue.trim() === projectToRename.name) { closeRenameModal(); return }
+    setRenaming(true)
+    try {
+      const res = await api.patch(`/projects/${projectToRename.slug}`, { name: renameValue.trim() })
+      toast(`Renamed to "${res.data.project.name}"`, 'success')
+      setProjects(p => p.map(pr => pr.slug === projectToRename.slug ? { ...pr, ...res.data.project } : pr))
+      closeRenameModal()
+    } catch (err) {
+      const msg = err.response?.data?.error || ''
+      if (msg.toLowerCase().includes('exists') || msg.toLowerCase().includes('slug')) {
+        setRenameError('A project with a similar name already exists.')
+      } else { toast(msg || 'Failed to rename project', 'error') }
+    } finally { setRenaming(false) }
   }
 
   return (
@@ -290,7 +336,7 @@ export default function Dashboard() {
           }
           return (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
-              {filtered.map(p => <ProjectCard key={p.slug} project={p} onDeleteClick={handleDeleteClick} />)}
+              {filtered.map(p => <ProjectCard key={p.slug} project={p} onDeleteClick={handleDeleteClick} onRenameClick={handleRenameClick} />)}
             </div>
           )
         })()}
@@ -334,6 +380,49 @@ export default function Dashboard() {
               >Cancel</button>
               <button onClick={createProject} disabled={creating} style={{ flex: 1, padding: '0.6rem', borderRadius: 10, background: creating ? C.accentDim : C.accent, color: '#0F172A', fontSize: 13, fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, border: 'none', cursor: creating ? 'not-allowed' : 'pointer', opacity: creating ? 0.7 : 1, transition: 'background 150ms' }}>
                 {creating ? 'Creating…' : 'Create'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {/* RENAME MODAL */}
+      {renameOpen && (
+        <div onClick={e => { if (e.target === e.currentTarget) closeRenameModal() }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ width: '100%', maxWidth: 380, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: '1.5rem', boxShadow: '0 24px 60px rgba(0,0,0,0.5)' }}>
+            <div style={{ marginBottom: 20 }}>
+              <h3 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 15, fontWeight: 600, color: C.fg }}>Rename Project</h3>
+              <p style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>A new slug will be auto-generated from the name</p>
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <input
+                autoFocus type="text" placeholder="My ecommerce app"
+                value={renameValue}
+                onChange={e => { setRenameValue(e.target.value); if (renameTouched) setRenameError(validateName(e.target.value)) }}
+                onBlur={() => { setRenameTouched(true); setRenameError(validateName(renameValue)) }}
+                onKeyDown={e => e.key === 'Enter' && handleRenameConfirm()}
+                style={{ width: '100%', background: renameError && renameTouched ? 'rgba(239,68,68,0.05)' : 'rgba(0,0,0,0.3)', border: `1px solid ${renameError && renameTouched ? 'rgba(239,68,68,0.5)' : C.border}`, borderRadius: 10, padding: '0.65rem 1rem', fontSize: 14, color: C.fg, fontFamily: "'DM Sans', sans-serif", outline: 'none', boxSizing: 'border-box' }}
+              />
+              {renameError && renameTouched && (
+                <p style={{ marginTop: 6, fontSize: 11, color: C.red, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10" opacity="0.2"/><line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/><circle cx="12" cy="16" r="1.2"/></svg>
+                  {renameError}
+                </p>
+              )}
+              {renameValue.trim() && !renameError && renameTouched && (
+                <p style={{ fontSize: 11, fontFamily: "'DM Mono', monospace", color: C.muted, marginTop: 6 }}>
+                  new slug: <span style={{ color: C.accent }}>{renameValue.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}</span>
+                </p>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={closeRenameModal} style={{ flex: 1, padding: '0.6rem', borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', fontSize: 13, color: C.muted, cursor: 'pointer', transition: 'color 150ms, border-color 150ms', fontFamily: "'DM Sans', sans-serif" }}
+                onMouseEnter={e => { e.currentTarget.style.color = C.fg; e.currentTarget.style.borderColor = C.muted }}
+                onMouseLeave={e => { e.currentTarget.style.color = C.muted; e.currentTarget.style.borderColor = C.border }}
+              >Cancel</button>
+              <button onClick={handleRenameConfirm} disabled={renaming} style={{ flex: 1, padding: '0.6rem', borderRadius: 10, background: renaming ? C.accentDim : C.accent, color: '#0F172A', fontSize: 13, fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, border: 'none', cursor: renaming ? 'not-allowed' : 'pointer', opacity: renaming ? 0.7 : 1, transition: 'background 150ms' }}>
+                {renaming ? 'Saving…' : 'Save'}
               </button>
             </div>
           </div>

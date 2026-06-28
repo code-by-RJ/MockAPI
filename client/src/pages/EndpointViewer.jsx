@@ -74,6 +74,7 @@ export default function EndpointViewer() {
   const [expanded, setExpanded] = useState(null)
   const [snippetTab, setSnippetTab] = useState('fetch')
   const [urlCopied, setUrlCopied] = useState(null)
+  const [expandedEnum, setExpandedEnum] = useState(null)  // fieldName of expanded enum
 
   // VITE_API_URL already ends with "/api" (e.g. https://server.onrender.com/api)
   // Strip trailing /api before adding our own, so we don't get /api/api/:slug
@@ -190,11 +191,11 @@ export default function EndpointViewer() {
             </div>
             <div>
               {fields.map((f,i)=>(
-                <div key={i} style={{ display:'flex', alignItems:'center', gap:12, padding:'0.6rem 1rem', borderBottom:i<fields.length-1?`1px solid rgba(255,255,255,0.04)`:'none' }}>
-                  <span style={{ fontFamily:"'DM Mono',monospace", fontSize:13, color:'rgba(255,255,255,0.7)', width:144, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{f.fieldName}</span>
-                  <span style={{ fontSize:11, padding:'0.15rem 0.5rem', borderRadius:6, border:'1px solid rgba(34,197,94,0.2)', background:'rgba(34,197,94,0.08)', color:`${C.accent}aa`, fontFamily:"'DM Mono',monospace" }}>{f.type}</span>
-                  {f.required && <span style={{ fontSize:10, color:'rgba(255,255,255,0.5)' }}>required</span>}
-                  {f.type==='enum' && f.values?.length>0 && <span style={{ fontSize:10, fontFamily:"'DM Mono',monospace", color:`${C.yellow}99` }}>[{f.values.join(', ')}]</span>}
+                <div key={i} style={{ display:'flex', alignItems:'flex-start', gap:12, padding:'0.6rem 1rem', borderBottom:i<fields.length-1?`1px solid rgba(255,255,255,0.04)`:'none' }}>
+                  <span style={{ fontFamily:"'DM Mono',monospace", fontSize:13, color:'rgba(255,255,255,0.7)', width:144, flexShrink:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{f.fieldName}</span>
+                  <span style={{ fontSize:11, padding:'0.15rem 0.5rem', borderRadius:6, border:'1px solid rgba(34,197,94,0.2)', background:'rgba(34,197,94,0.08)', color:`${C.accent}aa`, fontFamily:"'DM Mono',monospace", flexShrink:0 }}>{f.type}</span>
+                  {f.required && <span style={{ fontSize:10, color:'rgba(255,255,255,0.5)', flexShrink:0, paddingTop:2 }}>required</span>}
+                  {f.type==='enum' && f.values?.length>0 && <span onClick={() => setExpandedEnum(expandedEnum === f.fieldName ? null : f.fieldName)} style={{ fontSize:10, fontFamily:"'DM Mono',monospace", color:`${C.yellow}99`, flex:1, minWidth:0, ...(expandedEnum === f.fieldName ? { wordBreak:'break-word', cursor:'pointer' } : { overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', cursor:'pointer' }), paddingTop:2 }} title={expandedEnum === f.fieldName ? 'Tap to collapse' : 'Tap to expand'}>[{f.values.join(', ')}]</span>}
                 </div>
               ))}
             </div>

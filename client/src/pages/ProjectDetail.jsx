@@ -39,6 +39,12 @@ export default function ProjectDetail() {
   const [confirmOpen, setConfirmOpen]           = useState(false)
   const [resourceToDelete, setResourceToDelete] = useState(null)
   const [deleting, setDeleting]                 = useState(false)
+  const [renameOpen, setRenameOpen]             = useState(false)
+  const [renameTarget, setRenameTarget]         = useState(null)
+  const [renameValue, setRenameValue]           = useState('')
+  const [renameError, setRenameError]           = useState('')
+  const [renameTouched, setRenameTouched]       = useState(false)
+  const [renaming, setRenaming]                 = useState(false)
   // Priority 4
   const [recordCounts, setRecordCounts] = useState({})  // { [resourceName]: number }
   const [seeding, setSeeding]           = useState({})   // { [resourceName]: boolean }
@@ -100,14 +106,14 @@ export default function ProjectDetail() {
   }
 
   const RESOURCE_NAME_RE = /^[a-z0-9][a-z0-9-]*$/
-  const validateResourceName = (val) => {
+  const validateResourceName = (val, excludeName = '') => {
     const v = val.trim().toLowerCase()
     if (!v)                               return 'Resource name is required'
     if (v.length < 2)                     return 'Name must be at least 2 characters'
     if (v.length > 40)                    return 'Name must be under 40 characters'
     if (/\s/.test(val))                   return 'Spaces not allowed — use hyphens instead'
     if (!RESOURCE_NAME_RE.test(v))        return 'Only lowercase letters, numbers and hyphens'
-    if (resources.some(r => r.name === v)) return `"${v}" already exists in this project`
+    if (v !== excludeName && resources.some(r => r.name === v)) return `"${v}" already exists in this project`
     return ''
   }
 
@@ -184,6 +190,46 @@ export default function ProjectDetail() {
     }
   }
 
+  const handleRenameClick = (r) => {
+    setRenameTarget(r); setRenameValue(r.name); setRenameOpen(true)
+  }
+
+  const closeRenameModal = useCallback(() => {
+    setRenameOpen(false); setRenameTarget(null); setRenameValue(''); setRenameError(''); setRenameTouched(false)
+  }, [])
+
+  useEffect(() => {
+    if (!renameOpen) return
+    const handler = (e) => { if (e.key === 'Escape') closeRenameModal() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [renameOpen, closeRenameModal])
+
+  const handleRenameConfirm = async () => {
+    setRenameTouched(true)
+    const newName = renameValue.trim().toLowerCase()
+    if (newName === renameTarget?.name) { closeRenameModal(); return }
+    const err = validateResourceName(renameValue, renameTarget?.name)
+    if (err) { setRenameError(err); return }
+    setRenaming(true)
+    try {
+      await api.patch(`/projects/${slug}/resources/${renameTarget.name}`, { name: newName })
+      toast(`Renamed to "${newName}"`, 'success')
+      setResources(p => p.map(r => r.name === renameTarget.name ? { ...r, name: newName } : r))
+      setRecordCounts(c => {
+        const n = { ...c }
+        if (renameTarget.name in n) { n[newName] = n[renameTarget.name]; delete n[renameTarget.name] }
+        return n
+      })
+      closeRenameModal()
+    } catch (err) {
+      const msg = err.response?.data?.error || ''
+      if (msg.toLowerCase().includes('exists') || msg.toLowerCase().includes('duplicate')) {
+        setRenameError(`"${newName}" already exists.`)
+      } else { toast(msg || 'Failed to rename resource', 'error') }
+    } finally { setRenaming(false) }
+  }
+
   return (
     <div className="page-enter" style={{ minHeight:'100vh', background:C.bg, color:C.fg, fontFamily:"'DM Sans', sans-serif" }}>
       <style>{FONTS}{ANIM}{`
@@ -234,9 +280,9 @@ export default function ProjectDetail() {
           <div style={{ fontSize:11, fontWeight:600, color:C.muted, letterSpacing:'0.08em', textTransform:'uppercase', fontFamily:"'Space Grotesk',sans-serif", marginBottom:12 }}>Resources</div>
           <div style={{ border:`1px solid ${C.border}`, borderRadius:12, overflow:'hidden' }}><div style={{ overflowX:'auto' }}>
             {/* Head */}
-            <div style={{ display:'flex', alignItems:'center', gap:16, padding:'0.6rem 1rem', background:'rgba(255,255,255,0.02)', borderBottom:`1px solid ${C.border}`, minWidth:580 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:16, padding:'0.6rem 1rem', background:'rgba(255,255,255,0.02)', borderBottom:`1px solid ${C.border}`, minWidth:596 }}>
               {['Name','Endpoint','Fields','Records','Actions'].map((h,i)=>(
-                <span key={h} style={{ fontSize:11, fontWeight:500, color:'rgba(255,255,255,0.3)', width:i===0?144:i===2?56:i===3?70:i===4?136:'auto', flex:i===1?1:undefined, textAlign:i===2||i===3||i===4?'center':undefined, fontFamily:"'Space Grotesk',sans-serif" }}>{h}</span>
+                <span key={h} style={{ fontSize:11, fontWeight:500, color:'rgba(255,255,255,0.3)', width:i===0?144:i===2?56:i===3?70:i===4?150:'auto', flex:i===1?1:undefined, textAlign:i===2||i===3||i===4?'center':undefined, fontFamily:"'Space Grotesk',sans-serif" }}>{h}</span>
               ))}
             </div>
 
@@ -255,7 +301,7 @@ export default function ProjectDetail() {
               </div>
             ) : (
               resources.map(r => (
-                <div key={r.name} className="row-hover" style={{ display:'flex', alignItems:'center', gap:16, padding:'0.75rem 1rem', borderBottom:`1px solid rgba(255,255,255,0.04)`, transition:'background 150ms', minWidth:580 }}>
+                <div key={r.name} className="row-hover" style={{ display:'flex', alignItems:'center', gap:16, padding:'0.75rem 1rem', borderBottom:`1px solid rgba(255,255,255,0.04)`, transition:'background 150ms', minWidth:596 }}>
                   <span style={{ width:144, fontFamily:"'DM Mono',monospace", fontSize:13, color:C.fg, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{r.name}</span>
                   <span style={{ flex:1, fontFamily:"'DM Mono',monospace", fontSize:11, color:'rgba(255,255,255,0.6)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{BASE_URL}/{r.name}</span>
                   <span style={{ width:56, textAlign:'center', fontSize:12, color:'rgba(255,255,255,0.4)' }}>{r.schema?.length ?? 0}</span>
@@ -263,9 +309,20 @@ export default function ProjectDetail() {
                   <span style={{ width:70, textAlign:'center', fontSize:12, fontFamily:"'DM Mono',monospace", color: recordCounts[r.name] !== undefined ? C.accent : 'rgba(255,255,255,0.2)' }}>
                     {recordCounts[r.name] !== undefined ? recordCounts[r.name] : '—'}
                   </span>
-                  <div style={{ width:136, display:'flex', alignItems:'center', justifyContent:'flex-end', gap:5 }}>
+                  <div style={{ width:150, display:'flex', alignItems:'center', justifyContent:'flex-end', gap:5 }}>
                     <Link to={`/project/${slug}/resource/${r.name}`} className="action-btn">Edit</Link>
                     <Link to={`/project/${slug}/resource/${r.name}/endpoints`} className="action-btn">API</Link>
+                    {/* Rename button */}
+                    <button
+                      onClick={() => handleRenameClick(r)}
+                      aria-label={`Rename ${r.name}`}
+                      title="Rename resource"
+                      style={{ display:'inline-flex', alignItems:'center', padding:'0.25rem 0.45rem', borderRadius:8, border:`1px solid ${C.border}`, background:'transparent', color:C.muted, cursor:'pointer', fontSize:11, transition:'color 150ms,border-color 150ms' }}
+                      onMouseEnter={e => { e.currentTarget.style.color = C.accent; e.currentTarget.style.borderColor = 'rgba(34,197,94,0.4)' }}
+                      onMouseLeave={e => { e.currentTarget.style.color = C.muted; e.currentTarget.style.borderColor = C.border }}
+                    >
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
                     {/* Re-seed button */}
                     <button
                       onClick={() => handleReseed(r.name)}
@@ -315,6 +372,30 @@ export default function ProjectDetail() {
             <div style={{ display:'flex', gap:10 }}>
               <button onClick={closeModal} style={{ flex:1, padding:'0.6rem', borderRadius:10, border:`1px solid ${C.border}`, background:'transparent', fontSize:13, color:C.muted, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }} onMouseEnter={e=>{e.currentTarget.style.color=C.fg;e.currentTarget.style.borderColor=C.muted}} onMouseLeave={e=>{e.currentTarget.style.color=C.muted;e.currentTarget.style.borderColor=C.border}}>Cancel</button>
               <button onClick={createResource} disabled={creating} style={{ flex:1, padding:'0.6rem', borderRadius:10, background:creating?C.accentDim:C.accent, color:'#0F172A', fontSize:13, fontFamily:"'Space Grotesk',sans-serif", fontWeight:600, border:'none', cursor:creating?'not-allowed':'pointer', opacity:creating?0.7:1 }}>{creating?'Creating…':'Create'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {/* Rename Resource Modal */}
+      {renameOpen && (
+        <div onClick={e=>{if(e.target===e.currentTarget)closeRenameModal()}} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.65)', backdropFilter:'blur(6px)', zIndex:50, display:'flex', alignItems:'center', justifyContent:'center', padding:'1rem' }}>
+          <div style={{ width:'100%', maxWidth:380, background:C.surface, border:`1px solid ${C.border}`, borderRadius:16, padding:'1.5rem', boxShadow:'0 24px 60px rgba(0,0,0,0.5)' }}>
+            <h3 style={{ fontFamily:"'Space Grotesk',sans-serif", fontSize:15, fontWeight:600, color:C.fg, marginBottom:4 }}>Rename Resource</h3>
+            <p style={{ fontSize:12, color:C.muted, marginBottom:16 }}>Lowercase letters, numbers, hyphens only</p>
+            <div style={{ marginBottom:16 }}>
+              <input autoFocus type="text" value={renameValue}
+                onChange={e => { setRenameValue(e.target.value); if (renameTouched) setRenameError(validateResourceName(e.target.value, renameTarget?.name)) }}
+                onBlur={() => { setRenameTouched(true); setRenameError(validateResourceName(renameValue, renameTarget?.name)) }}
+                onKeyDown={e=>e.key==='Enter'&&handleRenameConfirm()}
+                style={{ width:'100%', background:renameError&&renameTouched?'rgba(239,68,68,0.05)':'rgba(0,0,0,0.3)', border:`1px solid ${renameError&&renameTouched?'rgba(239,68,68,0.5)':C.border}`, borderRadius:10, padding:'0.65rem 1rem', fontFamily:"'DM Mono',monospace", fontSize:13, color:C.fg, outline:'none', boxSizing:'border-box' }}/>
+              {renameError && renameTouched && <p style={{ marginTop:6, fontSize:11, color:C.red, display:'flex', alignItems:'center', gap:4 }}><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10" opacity="0.2"/><line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/><circle cx="12" cy="16" r="1.2"/></svg>{renameError}</p>}
+              {renameValue.trim() && !renameError && <p style={{ marginTop:6, fontSize:11, fontFamily:"'DM Mono',monospace", color:'rgba(255,255,255,0.25)' }}>endpoint: <span style={{color:C.accent}}>/api/{slug}/{renameValue.toLowerCase().trim()}</span></p>}
+            </div>
+            <div style={{ display:'flex', gap:10 }}>
+              <button onClick={closeRenameModal} style={{ flex:1, padding:'0.6rem', borderRadius:10, border:`1px solid ${C.border}`, background:'transparent', fontSize:13, color:C.muted, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }} onMouseEnter={e=>{e.currentTarget.style.color=C.fg;e.currentTarget.style.borderColor=C.muted}} onMouseLeave={e=>{e.currentTarget.style.color=C.muted;e.currentTarget.style.borderColor=C.border}}>Cancel</button>
+              <button onClick={handleRenameConfirm} disabled={renaming} style={{ flex:1, padding:'0.6rem', borderRadius:10, background:renaming?C.accentDim:C.accent, color:'#0F172A', fontSize:13, fontFamily:"'Space Grotesk',sans-serif", fontWeight:600, border:'none', cursor:renaming?'not-allowed':'pointer', opacity:renaming?0.7:1 }}>{renaming?'Saving…':'Save'}</button>
             </div>
           </div>
         </div>

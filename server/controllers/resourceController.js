@@ -159,6 +159,54 @@ export const getProjectLogs = async (req, res) => {
   }
 }
 
+// PATCH /api/projects/:slug/resources/:name — rename resource
+export const renameResource = async (req, res) => {
+  try {
+    const { slug, name } = req.params
+    const { name: newName } = req.body
+
+    if (!newName) return res.status(400).json({ success: false, error: 'New name is required' })
+
+    const trimmed = newName.toLowerCase().trim()
+
+    // Validate format
+    if (trimmed.length < 2)              return res.status(400).json({ success: false, error: 'Name must be at least 2 characters' })
+    if (trimmed.length > 40)             return res.status(400).json({ success: false, error: 'Name must be under 40 characters' })
+    if (!/^[a-z0-9][a-z0-9-]*$/.test(trimmed)) return res.status(400).json({ success: false, error: 'Only lowercase letters, numbers and hyphens allowed' })
+
+    const project = await Project.findOne({ slug, owner: req.user.userId })
+    if (!project) return res.status(404).json({ success: false, error: 'Project not found' })
+
+    // No-op if name unchanged
+    if (trimmed === name) return res.json({ success: true, message: 'No change', resource: await Resource.findOne({ projectId: project._id, name }) })
+
+    // Check for duplicate within same project
+    const duplicate = await Resource.findOne({ projectId: project._id, name: trimmed })
+    if (duplicate) return res.status(409).json({ success: false, error: `"${trimmed}" already exists in this project` })
+
+    const resource = await Resource.findOne({ projectId: project._id, name })
+    if (!resource) return res.status(404).json({ success: false, error: 'Resource not found' })
+
+    // Update resource name
+    resource.name = trimmed
+    await resource.save()
+
+    // Cascade rename in DynamicData and RequestLog
+    await Promise.all([
+      DynamicData.updateMany({ projectId: project._id, resourceName: name }, { resourceName: trimmed }),
+      RequestLog.updateMany({ projectId: project._id, resourceName: name }, { resourceName: trimmed }),
+    ])
+
+    invalidate(slug)
+    res.json({ success: true, message: `Renamed to "${trimmed}"`, resource })
+  } catch (err) {
+    if (err.code === 11000) {
+      return res.status(409).json({ success: false, error: 'Resource name already exists in this project' })
+    }
+    res.status(500).json({ success: false, error: err.message })
+  }
+}
+
 // ── Priority 4 ────────────────────────────────────────────────────────────────
 
 // POST /api/projects/:slug/resources/:name/seed
