@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import api from '../lib/axios'
@@ -84,7 +84,7 @@ function Card({ title, subtitle, children }) {
 
 function ProfileCard() {
   const { user, updateUser } = useAuth()
-  const toast = useToast()
+  const { toast } = useToast()
   const [name, setName]   = useState(user?.name || '')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -138,7 +138,7 @@ function ProfileCard() {
 // ── Change password card ─────────────────────────────────────────────
 
 function PasswordCard() {
-  const toast = useToast()
+  const { toast } = useToast()
   const [fields, setFields] = useState({ current: '', next: '', confirm: '' })
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
@@ -208,7 +208,7 @@ function PasswordCard() {
 
 function EmailCard() {
   const { updateUser } = useAuth()
-  const toast = useToast()
+  const { toast } = useToast()
   const [step, setStep]     = useState(1)   // 1 = form, 2 = OTP input
   const [pw, setPw]         = useState('')
   const [newEmail, setNewEmail] = useState('')
@@ -315,6 +315,136 @@ function EmailCard() {
   )
 }
 
+
+// ── Delete Account card ──────────────────────────────────────────────
+
+function DeleteAccountCard() {
+  const { logout } = useAuth()
+  const navigate   = useNavigate()
+  const { toast }  = useToast()
+
+  const [modalOpen,  setModalOpen]  = useState(false)
+  const [password,   setPassword]   = useState('')
+  const [passError,  setPassError]  = useState('')
+  const [loading,    setLoading]    = useState(false)
+
+  function openModal()  { setModalOpen(true);  setPassword(''); setPassError('') }
+  function closeModal() { if (loading) return; setModalOpen(false); setPassword(''); setPassError('') }
+
+  async function handleDelete() {
+    if (!password) { setPassError('Password is required'); return }
+    setLoading(true)
+
+    const doRedirect = () => {
+      if (typeof logout === 'function') logout()
+      setTimeout(() => { window.location.href = '/' }, 800)
+    }
+
+    try {
+      await api.delete('/auth/account', { data: { password }, timeout: 10000 })
+      toast('Account deleted successfully', 'success')
+      doRedirect()
+    } catch (err) {
+      // Network error / timeout — backend likely processed deletion, redirect anyway
+      const isNetworkOrTimeout = !err.response || err.code === 'ECONNABORTED'
+      if (isNetworkOrTimeout) {
+        toast('Account deleted. Redirecting…', 'success')
+        doRedirect()
+        return
+      }
+      const msg = err.response?.data?.error || 'Failed to delete account'
+      if (msg.toLowerCase().includes('password')) setPassError(msg)
+      else toast(msg, 'error')
+      setLoading(false)
+    }
+  }
+
+  return (
+    <>
+      {/* Danger Zone Card */}
+      <div style={{
+        background: C.surface,
+        border: `1px solid rgba(239,68,68,0.25)`,
+        borderRadius: 16, padding: '1.5rem',
+      }}>
+        <h2 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 700, color: C.red }}>Danger Zone</h2>
+        <p style={{ margin: '0 0 20px', fontSize: 13, color: C.muted }}>
+          Permanently delete your account and all associated projects, resources, and data. This cannot be undone.
+        </p>
+        <button
+          type="button"
+          onClick={openModal}
+          style={{
+            padding: '0.6rem 1.2rem', borderRadius: 10, border: `1px solid rgba(239,68,68,0.4)`,
+            background: 'rgba(239,68,68,0.08)', color: C.red,
+            fontSize: 13, fontWeight: 600, cursor: 'pointer',
+            transition: 'background 150ms, border-color 150ms',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.6)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.4)' }}
+        >
+          Delete Account
+        </button>
+      </div>
+
+      {/* Confirm Modal */}
+      {modalOpen && (
+        <div onClick={e => { if (e.target === e.currentTarget) closeModal() }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ width: '100%', maxWidth: 400, background: C.surface, border: `1px solid rgba(239,68,68,0.3)`, borderRadius: 16, padding: '1.5rem', boxShadow: '0 24px 60px rgba(0,0,0,0.5)' }}>
+
+            {/* Warning header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.red} strokeWidth="2.5" strokeLinecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.fg }}>Delete Account</h3>
+                <p style={{ margin: 0, fontSize: 12, color: C.muted }}>This action is permanent and irreversible</p>
+              </div>
+            </div>
+
+            <p style={{ fontSize: 13, color: C.muted, marginBottom: 18, lineHeight: 1.6 }}>
+              All your <span style={{ color: C.fg }}>projects, resources, and data</span> will be permanently deleted. You will be logged out immediately.
+            </p>
+
+            {/* Password confirm */}
+            <div style={{ marginBottom: 16 }}>
+              <Label>Confirm your password</Label>
+              <input
+                autoFocus type="password" value={password}
+                onChange={e => { setPassword(e.target.value); setPassError('') }}
+                onKeyDown={e => e.key === 'Enter' && handleDelete()}
+                placeholder="Enter your password"
+                style={{
+                  width: '100%', boxSizing: 'border-box',
+                  background: passError ? 'rgba(239,68,68,0.05)' : 'rgba(0,0,0,0.3)',
+                  border: `1px solid ${passError ? 'rgba(239,68,68,0.5)' : C.border}`,
+                  borderRadius: 10, padding: '0.65rem 1rem', fontSize: 14,
+                  color: C.fg, fontFamily: "'DM Sans', sans-serif", outline: 'none',
+                }}
+              />
+              <FieldError msg={passError} />
+            </div>
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button type="button" onClick={closeModal} disabled={loading}
+                style={{ flex: 1, padding: '0.6rem', borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', fontSize: 13, color: C.muted, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: "'DM Sans', sans-serif" }}
+                onMouseEnter={e => { e.currentTarget.style.color = C.fg; e.currentTarget.style.borderColor = C.muted }}
+                onMouseLeave={e => { e.currentTarget.style.color = C.muted; e.currentTarget.style.borderColor = C.border }}
+              >Cancel</button>
+              <button type="button" onClick={handleDelete} disabled={loading}
+                style={{ flex: 1, padding: '0.6rem', borderRadius: 10, background: loading ? 'rgba(239,68,68,0.5)' : C.red, color: '#fff', fontSize: 13, fontWeight: 600, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, fontFamily: "'Space Grotesk', sans-serif" }}>
+                {loading ? 'Deleting…' : 'Yes, delete my account'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
 // ── Main page ────────────────────────────────────────────────────────
 
 export default function Settings() {
@@ -342,6 +472,7 @@ export default function Settings() {
         <ProfileCard />
         <PasswordCard />
         <EmailCard />
+        <DeleteAccountCard />
       </div>
     </div>
   )

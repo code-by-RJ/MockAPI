@@ -66,6 +66,16 @@ const emailLimiter = rateLimit({
   message:         { success: false, error: 'Too many email requests. Try again in 1 hour.' },
 })
 
+
+// Delete account: 3 req/day — nuclear action, very strict
+const deleteAccountLimiter = rateLimit({
+  windowMs:        24 * 60 * 60 * 1000,
+  max:             3,
+  standardHeaders: true,
+  legacyHeaders:   false,
+  message:         { success: false, error: 'Too many delete attempts. Try again tomorrow.' },
+})
+
 // ── Routes ───────────────────────────────────────────────────────────
 router.post('/register',         authLimiter,  authController.register)
 router.post('/login',            authLimiter,  authController.login)
@@ -83,5 +93,6 @@ router.put('/profile',               authenticateToken, authController.updatePro
 router.put('/change-password',       authenticateToken, authController.changePassword)
 router.post('/request-email-change', authenticateToken, authController.requestEmailChange)
 router.post('/confirm-email-change', authenticateToken, authController.confirmEmailChange)
+router.delete('/account',            authenticateToken, deleteAccountLimiter, authController.deleteAccount)
 
 export default router

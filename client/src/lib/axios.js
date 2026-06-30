@@ -15,10 +15,15 @@ api.interceptors.request.use((config) => {
 
 // Auto logout ONLY on 401 (token invalid / expired)
 // 403 = authenticated but limit/permission hit — do NOT logout
+// Skip auth endpoints — login/register handle their own 401s (wrong password etc.)
+const AUTH_ENDPOINTS = ['/auth/login', '/auth/register', '/auth/verify-otp', '/auth/reset-password']
+
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
+    const url = err.config?.url || ''
+    const isAuthEndpoint = AUTH_ENDPOINTS.some(e => url.includes(e))
+    if (err.response?.status === 401 && !isAuthEndpoint) {
       localStorage.removeItem('token')
       window.location.href = '/login'
     }

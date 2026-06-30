@@ -1,4 +1,8 @@
-import User from '../models/User.js'
+import User        from '../models/User.js'
+import Project     from '../models/Project.js'
+import Resource    from '../models/Resource.js'
+import DynamicData from '../models/DynamicData.js'
+import RequestLog  from '../models/RequestLog.js'
 import jwt  from 'jsonwebtoken'
 import bcrypt from 'bcrypt'
 import { sendVerifyOTP, sendResetOTP } from '../services/emailService.js'
@@ -353,7 +357,7 @@ export const authController = {
         const left = 3 - user.loginAttempts
         return res.status(401).json({
           success:      false,
-          error:        `Incorrect password. ${left} attempt${left === 1 ? '' : 's'} remaining.`,
+          error:        `Invalid email or password. ${left} attempt${left === 1 ? '' : 's'} remaining.`,
           attemptsLeft: left,
         })
       }
@@ -535,4 +539,36 @@ export const authController = {
       })
     } catch (err) { next(err) }
   },
+  // ── Delete Account — verify password, cascade delete everything ──
+  async deleteAccount(req, res, next) {
+    try {
+      const { password } = req.body
+      if (!password)
+        return res.status(400).json({ success: false, error: 'Password is required to delete your account' })
+
+      const user = await User.findById(req.user.userId)
+      if (!user)
+        return res.status(404).json({ success: false, error: 'User not found' })
+
+      const valid = await bcrypt.compare(password, user.password)
+      if (!valid)
+        return res.status(401).json({ success: false, error: 'Incorrect password' })
+
+      // Cascade delete all user data
+      const projects = await Project.find({ owner: user._id })
+      if (projects.length > 0) {
+        const projectIds = projects.map(p => p._id)
+        await Promise.all([
+          Resource.deleteMany({ projectId: { $in: projectIds } }),
+          DynamicData.deleteMany({ projectId: { $in: projectIds } }),
+          RequestLog.deleteMany({ projectId: { $in: projectIds } }),
+        ])
+        await Project.deleteMany({ owner: user._id })
+      }
+
+      await User.findByIdAndDelete(user._id)
+      res.json({ success: true, message: 'Account deleted successfully' })
+    } catch (err) { next(err) }
+  },
+
 }
