@@ -6,6 +6,7 @@ import rateLimit    from 'express-rate-limit'
 import jwt          from 'jsonwebtoken'
 import helmet       from 'helmet'
 import mongoSanitize from 'express-mongo-sanitize'
+import cookieParser from 'cookie-parser'
 import { errorHandler } from './middlewares/errorHandler.js'
 
 import authRoutes     from './routes/auth.js'
@@ -31,6 +32,16 @@ app.set('trust proxy', 1)
 
 // ── Rate Limiters ───────────────────────────────────────────────────
 
+// Token now travels in an httpOnly cookie (set by authController on login/verify).
+// Checked first since that's how the dashboard itself calls these routes when
+// previewing/testing an endpoint; Authorization header kept as a fallback for
+// anyone manually passing a Bearer token (Postman, scripts, etc.) — doesn't hurt.
+const extractToken = (req) => {
+  if (req.cookies?.token) return req.cookies.token
+  const auth = req.headers.authorization
+  return auth?.startsWith('Bearer ') ? auth.slice(7) : null
+}
+
 // 15-min burst limiter — already in place
 const engineLimiter = rateLimit({
   windowMs:        15 * 60 * 1000,  // 15 minutes
@@ -48,9 +59,9 @@ const engineDailyLimiter = rateLimit({
   // Soft-decode JWT — no blocking, just for key + limit determination
   keyGenerator: (req) => {
     try {
-      const auth = req.headers.authorization
-      if (auth?.startsWith('Bearer ')) {
-        const decoded = jwt.verify(auth.split(' ')[1], process.env.JWT_SECRET)
+      const token = extractToken(req)
+      if (token) {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET)
         return `user:${decoded.userId}`
       }
     } catch {}
@@ -59,9 +70,9 @@ const engineDailyLimiter = rateLimit({
 
   max: (req) => {
     try {
-      const auth = req.headers.authorization
-      if (auth?.startsWith('Bearer ')) {
-        jwt.verify(auth.split(' ')[1], process.env.JWT_SECRET)
+      const token = extractToken(req)
+      if (token) {
+        jwt.verify(token, process.env.JWT_SECRET)
         return 1000  // authenticated user
       }
     } catch {}
@@ -96,6 +107,7 @@ app.use(cors({
 app.use(compression())
 app.use(express.json({ limit: '50kb' }))
 app.use(express.urlencoded({ extended: true, limit: '50kb' }))
+app.use(cookieParser())  // parses the httpOnly auth cookie into req.cookies
 // NoSQL injection guard — strips $ and . keys from body/query/params.
 // Runs after body parsing so req.body is actually populated by the time it sanitizes.
 app.use(mongoSanitize())

@@ -7,20 +7,18 @@ export function AuthProvider({ children }) {
   const [user, setUser]       = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // On mount — verify token with /api/auth/me
+  // On mount — no token to read locally anymore. The httpOnly cookie (if any)
+  // is attached automatically by the browser, so we just ask the server who
+  // we are; a missing/expired cookie simply 401s and we stay logged out.
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    if (!token) { setLoading(false); return }
-
     api.get('/auth/me')
       .then(res => setUser(res.data.user))
-      .catch(() => localStorage.removeItem('token'))
+      .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
 
   const login = useCallback(async (email, password) => {
     const res = await api.post('/auth/login', { email, password })
-    localStorage.setItem('token', res.data.token)
     setUser(res.data.user)
     return res.data
   }, [])
@@ -32,15 +30,19 @@ export function AuthProvider({ children }) {
     return res.data
   }, [])
 
-  // Called by VerifyOTP + any other post-OTP flow to finish auth
-  const loginWithToken = useCallback((token, userData) => {
-    localStorage.setItem('token', token)
+  // Called by VerifyOTP + any other post-OTP flow to finish auth.
+  // First arg kept for backward compat with existing callers — the server
+  // already set the httpOnly cookie in its response, so it's unused here.
+  const loginWithToken = useCallback((_token, userData) => {
     setUser(userData)
   }, [])
 
+  // Clear local state immediately for an instant redirect feel; the cookie-clear
+  // request to the server runs in the background and is fire-and-forget — even
+  // if it fails, the cookie will just expire naturally (7d maxAge as backstop).
   const logout = useCallback(() => {
-    localStorage.removeItem('token')
     setUser(null)
+    api.post('/auth/logout').catch(() => {})
   }, [])
 
   const updateUser = useCallback((partial) => {

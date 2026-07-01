@@ -14,6 +14,22 @@ const signToken = (user) =>
     { expiresIn: '7d' }
   )
 
+// Token now lives in an httpOnly cookie instead of the response body —
+// client-side JS (and therefore an XSS payload) can never read it.
+// SameSite=None is required because the frontend (Vercel) and backend (Render)
+// are different domains; that in turn requires Secure, which only works over
+// HTTPS — fine in production, so we relax both to lax/false for local dev (http).
+const COOKIE_NAME = 'token'
+const cookieOptions = {
+  httpOnly: true,
+  secure:   process.env.NODE_ENV === 'production',
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+  maxAge:   7 * 24 * 60 * 60 * 1000, // 7d — mirrors JWT expiry above
+  path:     '/',
+}
+const setAuthCookie   = (res, token) => res.cookie(COOKIE_NAME, token, cookieOptions)
+const clearAuthCookie = (res) => res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: undefined })
+
 const generateOTP = () =>
   Math.floor(100000 + Math.random() * 900000).toString()
 
@@ -136,9 +152,9 @@ export const authController = {
       await user.save()
 
       const token = signToken(user)
+      setAuthCookie(res, token)
       res.json({
         success: true,
-        token,
         user: { id: user._id, name: user.name, email: user.email },
       })
     } catch (err) { next(err) }
@@ -370,12 +386,20 @@ export const authController = {
       }
 
       const token = signToken(user)
+      setAuthCookie(res, token)
       res.json({
         success: true,
-        token,
         user: { id: user._id, name: user.name, email: user.email },
       })
     } catch (err) { next(err) }
+  },
+
+  // ── Logout ───────────────────────────────────────────────────────
+  // No authenticateToken guard — calling this with no/expired cookie should
+  // still succeed (idempotent: end state is "no cookie" either way).
+  async logout(req, res) {
+    clearAuthCookie(res)
+    res.json({ success: true })
   },
 
   // ── Me ───────────────────────────────────────────────────────────
@@ -567,6 +591,7 @@ export const authController = {
       }
 
       await User.findByIdAndDelete(user._id)
+      clearAuthCookie(res)
       res.json({ success: true, message: 'Account deleted successfully' })
     } catch (err) { next(err) }
   },

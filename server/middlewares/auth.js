@@ -1,8 +1,10 @@
 import jwt from 'jsonwebtoken'
 
 export const authenticateToken = (req, res, next) => {
-  const auth  = req.headers['authorization']
-  const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : null
+  // Token now lives in an httpOnly cookie (not the Authorization header) —
+  // the browser attaches it automatically on every same-credentialed request,
+  // so client JS never touches the raw token (mitigates XSS token theft).
+  const token = req.cookies?.token
 
   if (!token)
     return res.status(401).json({ success: false, error: 'Access token required' })

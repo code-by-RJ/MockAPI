@@ -448,7 +448,8 @@ export default function Landing() {
       </section>
 
       {/* FOOTER */}
-      <footer style={{ borderTop: `1px solid ${C.border}`, padding: "2rem clamp(1.5rem, 5vw, 4rem)", display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: "1rem" }}>
+      <footer style={{ position: "relative", borderTop: `1px solid ${C.border}`, padding: "2rem clamp(1.5rem, 5vw, 4rem)", display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: "1rem" }}>
+        <div style={{ position: "absolute", top: -1, left: 0, right: 0, height: 1, background: `linear-gradient(90deg, transparent, ${C.accent}55, transparent)` }} />
         <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "0.9rem", fontWeight: 600 }}>MockAPI</div>
         <ul style={{ display: "flex", gap: "1.5rem", listStyle: "none", justifyContent: "center" }}>
           {["Docs","GitHub","Status"].map(l => <li key={l}><a href="#" className="nav-link" style={{ fontSize: "0.85rem" }}>{l}</a></li>)}

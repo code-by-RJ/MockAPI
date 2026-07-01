@@ -47,7 +47,7 @@ const otpDailyLimiter = rateLimit({
 })
 
 // Password reset completion: 3 requests/day — keyed PER USER (email), not IP
-// Doc: "Password Reset — 3 requests/day per user — abuse rokta hai, genuine user ko sufficient attempts"
+// Prevents brute-force abuse of the reset flow while still giving genuine users enough attempts.
 const passwordResetDailyLimiter = rateLimit({
   windowMs: 24 * 60 * 60 * 1000,
   max:      3,
@@ -79,6 +79,7 @@ const deleteAccountLimiter = rateLimit({
 // ── Routes ───────────────────────────────────────────────────────────
 router.post('/register',         authLimiter,  authController.register)
 router.post('/login',            authLimiter,  authController.login)
+router.post('/logout',           authController.logout)   // clears the auth cookie — safe to call regardless of auth state
 router.get('/me',                authenticateToken, authController.me)
 
 // OTP flows

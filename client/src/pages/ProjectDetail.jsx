@@ -54,17 +54,16 @@ export default function ProjectDetail() {
     : window.location.origin
   const BASE_URL = `${apiOrigin}/api/${slug}`
 
-  // Fetch record counts from engine API — now requires JWT since private
-  // projects (isPublic: false) are guarded at the engine pipeline level.
-  // Owner's token always works since pipeline checks token.userId === project.owner.
+  // Fetch record counts from engine API — now requires the auth cookie since
+  // private projects (isPublic: false) are guarded at the engine pipeline level.
+  // credentials: 'include' tells the browser to attach the httpOnly cookie automatically.
   const fetchRecordCounts = useCallback(async (resourceList) => {
     if (!resourceList || resourceList.length === 0) return
-    const token = localStorage.getItem('token')
     const results = await Promise.allSettled(
       resourceList.map(async (r) => {
         try {
           const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/${slug}/${r.name}?limit=1`, {
-            headers: token ? { Authorization: `Bearer ${token}` } : {}
+            credentials: 'include'
           })
           const data = await res.json()
           return { name: r.name, total: data.total ?? 0 }
@@ -175,9 +174,8 @@ export default function ProjectDetail() {
       toast(`"${resourceName}" re-seeded with 10 fresh records`, 'success')
       // Refresh count for this resource
       try {
-        const token = localStorage.getItem('token')
         const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/${slug}/${resourceName}?limit=1`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {}
+          credentials: 'include'
         })
         const data = await res.json()
         setRecordCounts(c => ({ ...c, [resourceName]: data.total ?? 10 }))
