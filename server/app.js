@@ -20,7 +20,7 @@ import engineRoutes   from './routes/engine.js'
 //
 // dotenv.config() runs HERE (not just in index.js) because ESM hoists imports —
 // `import app from './app.js'` in index.js fully evaluates this file BEFORE
-// index.js's own dotenv.config() line runs. Without this, corsOrigin below would
+// index.js's own dotenv.config() line runs. Without this, allowedOrigins below would
 // read undefined env vars. Calling dotenv.config() twice (once here, once in
 // index.js) is harmless — it's idempotent.
 dotenv.config()
@@ -95,13 +95,45 @@ const engineDailyLimiter = rateLimit({
 })
 
 // ── Middleware ──────────────────────────────────────────────────────
-const corsOrigin = process.env.NODE_ENV === 'production'
-  ? process.env.CLIENT_URL                               // prod: CLIENT_URL must be set (no fallback)
-  : (process.env.CLIENT_URL || 'http://localhost:5173')  // dev: localhost fallback ok
+// Priority 3 fix — explicit origin allowlist instead of a single trusted string.
+// CLIENT_URL can hold multiple comma-separated domains (e.g. the main app +
+// a custom demo domain) and anything not in the list is rejected outright
+// rather than silently reflected back.
+const allowedOrigins = (process.env.CLIENT_URL || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean)
+if (process.env.NODE_ENV !== 'production') allowedOrigins.push('http://localhost:5173')
 
-app.use(helmet())
+const corsOptionsDelegate = (origin, callback) => {
+  // No Origin header = same-origin request or a non-browser client (curl, server-to-server,
+  // health checks) — nothing to restrict there since browsers only send credentialed CORS
+  // requests with an Origin header in the first place.
+  if (!origin || allowedOrigins.includes(origin)) return callback(null, true)
+  return callback(new Error('Not allowed by CORS'))
+}
+
+app.use(helmet({
+  // Priority 5 — explicit security headers. helmet() defaults already cover
+  // X-Content-Type-Options, X-Frame-Options and a baseline CSP, but we pin
+  // them explicitly here (plus a longer HSTS max-age) so they can't silently
+  // regress if the helmet default set changes in a future version.
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'none'"],       // this is a JSON API, not a page — no default content sources needed
+      frameAncestors: ["'none'"],   // belt-and-braces on top of X-Frame-Options
+    },
+  },
+  hsts: {
+    maxAge: 31536000, // 1 year
+    includeSubDomains: true,
+    preload: true,
+  },
+  frameguard: { action: 'deny' },
+  noSniff: true,
+}))
 app.use(cors({
-  origin:      corsOrigin,
+  origin:      corsOptionsDelegate,
   credentials: true,
 }))
 app.use(compression())

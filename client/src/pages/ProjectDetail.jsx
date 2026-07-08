@@ -232,12 +232,13 @@ export default function ProjectDetail() {
     <div className="page-enter" style={{ minHeight:'100vh', background:C.bg, color:C.fg, fontFamily:"'DM Sans', sans-serif" }}>
       <style>{FONTS}{ANIM}{`
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-        input::placeholder{color:#475569}
+        input::placeholder{color:#A3ADC2}
         .row-hover:hover{background:rgba(255,255,255,0.02)}
         .action-btn{display:inline-flex;align-items:center;padding:0.25rem 0.6rem;border-radius:8px;border:1px solid ${C.border};background:transparent;color:${C.muted};font-size:11px;cursor:pointer;transition:color 150ms,border-color 150ms;font-family:'DM Sans',sans-serif;text-decoration:none}
         .action-btn:hover{color:${C.fg};border-color:${C.muted}}
         .del-btn{display:inline-flex;align-items:center;padding:0.25rem 0.5rem;border-radius:8px;background:transparent;border:none;color:rgba(255,255,255,0.2);font-size:13px;cursor:pointer;transition:color 150ms,background 150ms}
         .del-btn:hover{color:${C.red};background:rgba(239,68,68,0.08)}
+        .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
       `}</style>
 
       {/* NAVBAR */}
@@ -245,7 +246,7 @@ export default function ProjectDetail() {
         <div style={{ maxWidth:1100, margin:'0 auto', width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
           <div className="pd-nav-left" style={{ display:'flex', alignItems:'center', gap:8, fontFamily:"'DM Mono',monospace", fontSize:13, color:C.muted }}>
             <Link to="/dashboard" style={{ color:C.muted, textDecoration:'none', transition:'color 150ms' }} onMouseEnter={e=>e.target.style.color=C.fg} onMouseLeave={e=>e.target.style.color=C.muted}>Dashboard</Link>
-            <span className="pd-breadcrumb-mid" style={{ color:'#475569' }}>/</span>
+            <span className="pd-breadcrumb-mid" style={{ color:'#94A3B8' }}>/</span>
             <span style={{ color:C.fg }}>{slug}</span>
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:10 }}>
@@ -259,7 +260,8 @@ export default function ProjectDetail() {
         </div>
       </nav>
 
-      <div style={{ maxWidth:1100, margin:'0 auto', padding:'2rem clamp(1.5rem,5vw,3rem)' }}>
+      <main style={{ maxWidth:1100, margin:'0 auto', padding:'2rem clamp(1.5rem,5vw,3rem)' }}>
+        <h1 className="sr-only">{project?.name || slug} — Project</h1>
 
         {/* Project meta */}
         <div className="pd-base-row" style={{ display:'flex', flexWrap:'wrap', alignItems:'center', gap:10, marginBottom:28 }}>
@@ -275,7 +277,7 @@ export default function ProjectDetail() {
 
         {/* Resources table */}
         <div style={{ marginBottom:32 }}>
-          <div style={{ fontSize:11, fontWeight:600, color:C.muted, letterSpacing:'0.08em', textTransform:'uppercase', fontFamily:"'Space Grotesk',sans-serif", marginBottom:12 }}>Resources</div>
+          <h2 style={{ fontSize:11, fontWeight:600, color:C.muted, letterSpacing:'0.08em', textTransform:'uppercase', fontFamily:"'Space Grotesk',sans-serif", marginBottom:12 }}>Resources</h2>
           <div style={{ border:`1px solid ${C.border}`, borderRadius:12, overflow:'hidden' }}><div style={{ overflowX:'auto' }}>
             {/* Head */}
             <div style={{ display:'flex', alignItems:'center', gap:16, padding:'0.6rem 1rem', background:'rgba(255,255,255,0.02)', borderBottom:`1px solid ${C.border}`, minWidth:596 }}>
@@ -348,10 +350,10 @@ export default function ProjectDetail() {
 
         {/* Request Logs */}
         <div>
-          <div style={{ fontSize:11, fontWeight:600, color:C.muted, letterSpacing:'0.08em', textTransform:'uppercase', fontFamily:"'Space Grotesk',sans-serif", marginBottom:12 }}>Request Logs</div>
+          <h2 style={{ fontSize:11, fontWeight:600, color:C.muted, letterSpacing:'0.08em', textTransform:'uppercase', fontFamily:"'Space Grotesk',sans-serif", marginBottom:12 }}>Request Logs</h2>
           <RequestLogsPanel projectSlug={slug} />
         </div>
-      </div>
+      </main>
 
       {/* Create Resource Modal */}
       {showModal && (

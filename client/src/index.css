@@ -1,4 +1,15 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap');
+/* Fonts now loaded via <link rel="stylesheet"> in index.html + preconnect —
+   removes the render-blocking @import chain that Lighthouse flagged
+   (~1,510ms wasted on desktop, ~450ms on mobile, worst on the schema
+   builder page). Also adds shared color-contrast design tokens. */
+
+:root {
+  --text-primary:   #e2e8f0;
+  --text-secondary: #a3adc2; /* passes 4.5:1 on all dark backgrounds used across the app */
+  --text-tertiary:  #94a3b8; /* smallest/least-important labels */
+  --text-success:   #34d399;
+  --text-danger:    #f87171;
+}
 
 @tailwind base;
 @tailwind components;

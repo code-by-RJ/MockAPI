@@ -134,7 +134,7 @@ function LeftPanel() {
 
       {/* Terminal snippet */}
       <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 12, padding: '1rem 1.25rem', fontFamily: "'DM Mono', monospace", fontSize: 12, lineHeight: 1.8 }}>
-        <div style={{ color: '#475569', marginBottom: 4 }}>// GET /api/v1/users</div>
+        <div style={{ color: '#94A3B8', marginBottom: 4 }}>// GET /api/v1/users</div>
         <div><span style={{ color: C.blue }}>"id"</span>: <span style={{ color: C.accent }}>"usr_01"</span>,</div>
         <div><span style={{ color: C.blue }}>"name"</span>: <span style={{ color: C.accent }}>"Priya Sharma"</span>,</div>
         <div><span style={{ color: C.blue }}>"latency"</span>: <span style={{ color: C.yellow }}>"12ms"</span></div>
@@ -188,9 +188,10 @@ export default function Login() {
     <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', fontFamily: "'DM Sans', sans-serif" }}>
       <style>{`
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        input::placeholder { color: #475569; }
+        input::placeholder { color: #A3ADC2; }
         .left-panel { display: flex !important; }
         @media (max-width: 768px) { .left-panel { display: none !important; } .right-panel { padding: 2rem 1.5rem !important; } }
+        .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
       `}</style>
 
       {/* LEFT */}
@@ -229,7 +230,7 @@ export default function Login() {
 
         {/* Terminal */}
         <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 12, padding: '1rem 1.25rem', fontFamily: "'DM Mono', monospace", fontSize: 12, lineHeight: 1.8 }}>
-          <div style={{ color: '#475569', marginBottom: 4 }}>// GET /api/v1/users</div>
+          <div style={{ color: '#94A3B8', marginBottom: 4 }}>// GET /api/v1/users</div>
           <div><span style={{ color: C.blue }}>"id"</span>: <span style={{ color: C.accent }}>"usr_01"</span>,</div>
           <div><span style={{ color: C.blue }}>"name"</span>: <span style={{ color: C.accent }}>"Priya Sharma"</span>,</div>
           <div><span style={{ color: C.blue }}>"latency"</span>: <span style={{ color: C.yellow }}>"12ms"</span></div>
@@ -237,8 +238,9 @@ export default function Login() {
       </div>
 
       {/* RIGHT */}
-      <div className="right-panel" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3rem 2rem' }}>
+      <main className="right-panel" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3rem 2rem' }}>
         <div style={{ width: '100%', maxWidth: 380 }}>
+          <h1 className="sr-only">Sign in — MockAPI</h1>
           <div style={{ marginBottom: 32 }}>
             <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 22, color: C.fg, marginBottom: 4 }}>Welcome back</h2>
             <p style={{ fontSize: 13, color: C.muted }}>Sign in to your account</p>
@@ -298,7 +300,7 @@ export default function Login() {
             <Link to="/register" style={{ color: C.accent, textDecoration: 'none', fontWeight: 500 }}>Sign up</Link>
           </p>
         </div>
-      </div>
+      </main>
     </div>
   )
 }

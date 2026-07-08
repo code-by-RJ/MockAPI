@@ -138,7 +138,8 @@ export default function Register() {
     <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', fontFamily: "'DM Sans', sans-serif" }}>
       <style>{`
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        input::placeholder { color: #475569; }
+        input::placeholder { color: #A3ADC2; }
+        .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
         @media (max-width: 768px) { .auth-left { display: none !important; } .auth-right { width: 100% !important; } }
       `}</style>
 
@@ -192,13 +193,14 @@ export default function Register() {
         {/* Bottom quote */}
         <div style={{ borderLeft: `2px solid rgba(34,197,94,0.3)`, paddingLeft: 12 }}>
           <p style={{ fontSize: 12, color: C.muted, fontStyle: 'italic', lineHeight: 1.6 }}>"Saved us days of backend work before the demo."</p>
-          <p style={{ fontSize: 11, color: '#475569', marginTop: 4 }}>— Frontend dev, using MockAPI</p>
+          <p style={{ fontSize: 11, color: '#94A3B8', marginTop: 4 }}>— Frontend dev, using MockAPI</p>
         </div>
       </div>
 
       {/* RIGHT PANEL */}
-      <div className="auth-right" style={{ width: '55%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+      <main className="auth-right" style={{ width: '55%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
         <div style={{ width: '100%', maxWidth: 400 }}>
+          <h1 className="sr-only">Create account — MockAPI</h1>
           <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 22, color: C.fg, marginBottom: 4 }}>Create account</h2>
           <p style={{ fontSize: 13, color: C.muted, marginBottom: 28 }}>Start building fake APIs in seconds</p>
 
@@ -220,7 +222,7 @@ export default function Register() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                 <label style={{ fontSize: 12, color: C.muted }}>Password</label>
                 <button type="button" onClick={genStrongPassword}
-                  style={{ fontSize: 11, color: C.accent, background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", display: 'flex', alignItems: 'center', gap: 4, padding: 0 }}
+                  style={{ fontSize: 11, color: C.accent, background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", display: 'flex', alignItems: 'center', gap: 4, padding: '10px 4px', minHeight: 24 }}
                   title="Generate a strong password">
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                   Suggest password
@@ -239,7 +241,7 @@ export default function Register() {
                   }}
                 />
                 <button type="button" onClick={() => setShowPassword(p => !p)} aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: C.muted, cursor: 'pointer', padding: 2, display: 'flex', alignItems: 'center' }}>
+                  style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)', width: 40, height: 40, background: 'none', border: 'none', color: C.muted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {showPassword
                     ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
                     : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -269,7 +271,7 @@ export default function Register() {
             <Link to="/login" style={{ color: C.accent, textDecoration: 'none', fontWeight: 500 }}>Sign in</Link>
           </p>
         </div>
-      </div>
+      </main>
     </div>
   )
 }

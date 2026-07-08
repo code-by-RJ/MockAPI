@@ -360,7 +360,7 @@ export default function Landing() {
               <span style={{ marginLeft: "auto", fontFamily: "'DM Mono', monospace", fontSize: "0.75rem", color: C.muted, background: C.bg, padding: "0.25rem 0.75rem", borderRadius: 6, border: `1px solid ${C.border}` }}>mockapi.spacego.online/api/v1/users</span>
             </div>
             <div style={{ padding: "1.25rem 1.5rem", fontFamily: "'DM Mono', monospace", fontSize: "0.82rem", lineHeight: 1.8 }}>
-              <div style={{ color: "#475569" }}>// GET /api/v1/users — instant response</div>
+              <div style={{ color: "#94A3B8" }}>// GET /api/v1/users — instant response</div>
               <div style={{ marginTop: "0.5rem" }}><span style={{ color: C.blue }}>"status"</span>: <span style={{ color: C.yellow }}>200</span>,</div>
               <div><span style={{ color: C.blue }}>"data"</span>: [</div>
               <div style={{ paddingLeft: "1.5rem" }}>{"{ "}<span style={{ color: C.blue }}>"id"</span>: <span style={{ color: C.accent }}>"usr_01"</span>, <span style={{ color: C.blue }}>"name"</span>: <span style={{ color: C.accent }}>"Priya Sharma"</span>, <span style={{ color: C.blue }}>"role"</span>: <span style={{ color: C.accent }}>"admin"</span>{" },"}</div>

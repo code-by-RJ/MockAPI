@@ -11,7 +11,7 @@ export default function ProtectedRoute({ children }) {
         <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
         <div style={{ textAlign:'center' }}>
           <div style={{ width:22, height:22, border:'2px solid rgba(34,197,94,0.2)', borderTop:'2px solid #22C55E', borderRadius:'50%', animation:'spin 0.8s linear infinite', margin:'0 auto 12px' }}/>
-          <div style={{ fontFamily:"'DM Mono',monospace", fontSize:12, color:'#475569' }}>Loading…</div>
+          <div style={{ fontFamily:"'DM Mono',monospace", fontSize:12, color:'#94A3B8' }}>Loading…</div>
         </div>
       </div>
     )

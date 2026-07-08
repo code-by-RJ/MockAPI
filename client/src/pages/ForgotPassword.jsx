@@ -70,7 +70,7 @@ export default function ForgotPassword() {
     <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'DM Sans', sans-serif", padding: '2rem' }}>
       <style>{FONTS}{ANIM}{`
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        input::placeholder { color: #475569; }
+        input::placeholder { color: #A3ADC2; }
         input:focus { outline: none; border-color: rgba(34,197,94,0.5) !important; }
       `}</style>
 

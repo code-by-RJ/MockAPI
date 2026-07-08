@@ -64,6 +64,7 @@ export default function ErrorSimConfig({ slug, resourceName, initialErrorRate = 
             value={errorRate}
             onChange={e=>setErrorRate(Number(e.target.value))}
             className="sim-range err"
+            aria-label="Error rate percentage"
             style={{ background:`linear-gradient(to right,${errPct>0?C.red:C.border} 0%,${errPct>0?C.red:C.border} ${errPct}%,${C.surface2} ${errPct}%,${C.surface2} 100%)` }}
           />
           <div style={{ display:'flex', justifyContent:'space-between', marginTop:6, overflow:'hidden' }}>
@@ -87,6 +88,7 @@ export default function ErrorSimConfig({ slug, resourceName, initialErrorRate = 
             value={delay}
             onChange={e=>setDelay(Number(e.target.value))}
             className="sim-range dly"
+            aria-label="Response delay in milliseconds"
             style={{ background:`linear-gradient(to right,${delay>0?C.yellow:C.border} 0%,${delay>0?C.yellow:C.border} ${delayPct}%,${C.surface2} ${delayPct}%,${C.surface2} 100%)` }}
           />
           <div style={{ display:'flex', justifyContent:'space-between', marginTop:6, overflow:'hidden' }}>

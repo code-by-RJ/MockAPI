@@ -26,14 +26,21 @@ function ProjectCard({ project, onDeleteClick, onRenameClick }) {
   }
 
   return (
-    <Link to={`/project/${project.slug}`} style={{ display: 'block', textDecoration: 'none', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, padding: '1.25rem', transition: 'border-color 200ms, transform 200ms, box-shadow 200ms', position: 'relative', overflow: 'hidden' }}
+    <div
+      style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, padding: '1.25rem', transition: 'border-color 200ms, transform 200ms, box-shadow 200ms', position: 'relative', overflow: 'hidden' }}
       onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(34,197,94,0.3)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.25)' }}
       onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none' }}
     >
+      {/* Priority 2 fix (nested-interactive): whole-card click/keyboard target lives
+          in its own full-bleed link BEHIND the content, instead of wrapping the
+          action buttons in an <a>. Buttons below are plain siblings now — never
+          descendants of an interactive element. */}
+      <Link to={`/project/${project.slug}`} aria-label={`Open project ${project.name}`} style={{ position: 'absolute', inset: 0, zIndex: 0 }} />
+
       {/* Top */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 10, position: 'relative', zIndex: 1, pointerEvents: 'none' }}>
         <div style={{ minWidth: 0 }}>
-          <h3 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 15, color: C.fg, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{project.name}</h3>
+          <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 15, color: C.fg, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{project.name}</h2>
           <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: C.muted, marginTop: 2 }}>/{project.slug}</p>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5, flexShrink: 0 }}>
@@ -48,30 +55,30 @@ function ProjectCard({ project, onDeleteClick, onRenameClick }) {
       </div>
 
       {/* Date */}
-      <p style={{ fontSize: 11, color: C.muted, marginBottom: 12 }}>
+      <p style={{ fontSize: 11, color: C.muted, marginBottom: 12, position: 'relative', zIndex: 1, pointerEvents: 'none' }}>
         Created {new Date(project.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
       </p>
 
-      {/* Actions */}
-      <div style={{ display: 'flex', gap: 8 }} onClick={e => e.preventDefault()}>
+      {/* Actions — plain siblings of the Link above, not nested inside it */}
+      <div style={{ display: 'flex', gap: 8, position: 'relative', zIndex: 1 }}>
         <button onClick={copyBase} style={{ flex: 1, fontSize: 11, padding: '0.4rem 0', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: copied ? C.accent : C.muted, cursor: 'pointer', transition: 'color 150ms, border-color 150ms', fontFamily: "'DM Sans', sans-serif" }}
           onMouseEnter={e => { e.currentTarget.style.color = C.fg; e.currentTarget.style.borderColor = C.muted }}
           onMouseLeave={e => { e.currentTarget.style.color = copied ? C.accent : C.muted; e.currentTarget.style.borderColor = C.border }}
         >
           {copied ? '✓ Copied' : '⎘ Copy URL'}
         </button>
-        <button onClick={(e) => { e.preventDefault(); onRenameClick(project) }} title="Rename project" style={{ width: 32, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.muted, cursor: 'pointer', transition: 'color 150ms, border-color 150ms, background 150ms' }}
+        <button onClick={() => onRenameClick(project)} title="Rename project" style={{ width: 32, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.muted, cursor: 'pointer', transition: 'color 150ms, border-color 150ms, background 150ms' }}
           onMouseEnter={e => { e.currentTarget.style.color = C.accent; e.currentTarget.style.borderColor = 'rgba(34,197,94,0.35)'; e.currentTarget.style.background = 'rgba(34,197,94,0.05)' }}
           onMouseLeave={e => { e.currentTarget.style.color = C.muted; e.currentTarget.style.borderColor = C.border; e.currentTarget.style.background = 'transparent' }}
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         </button>
-        <button onClick={(e) => { e.preventDefault(); onDeleteClick(project) }} style={{ width: 32, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.muted, cursor: 'pointer', fontSize: 13, transition: 'color 150ms, border-color 150ms, background 150ms' }}
+        <button onClick={() => onDeleteClick(project)} style={{ width: 32, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.muted, cursor: 'pointer', fontSize: 13, transition: 'color 150ms, border-color 150ms, background 150ms' }}
           onMouseEnter={e => { e.currentTarget.style.color = C.red; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)'; e.currentTarget.style.background = 'rgba(239,68,68,0.05)' }}
           onMouseLeave={e => { e.currentTarget.style.color = C.muted; e.currentTarget.style.borderColor = C.border; e.currentTarget.style.background = 'transparent' }}
         >✕</button>
       </div>
-    </Link>
+    </div>
   )
 }
 
@@ -254,7 +261,7 @@ export default function Dashboard() {
       </nav>
 
       {/* CONTENT */}
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '2.5rem clamp(1.5rem, 5vw, 3rem)' }}>
+      <main style={{ maxWidth: 1100, margin: '0 auto', padding: '2.5rem clamp(1.5rem, 5vw, 3rem)' }}>
         <div style={{ marginBottom: 32 }}>
           <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 22, fontWeight: 600, color: C.fg }}>Your Projects</h1>
           {!loading && (
@@ -304,7 +311,7 @@ export default function Dashboard() {
               <span style={{ position: 'absolute', top: -4, right: -4, width: 12, height: 12, borderRadius: '50%', background: 'rgba(34,197,94,0.4)', border: '1px solid rgba(34,197,94,0.3)' }}/>
             </div>
 
-            <h3 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 15, fontWeight: 600, color: C.fg, marginBottom: 6 }}>No projects yet</h3>
+            <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 15, fontWeight: 600, color: C.fg, marginBottom: 6 }}>No projects yet</h2>
             <p style={{ fontSize: 13, color: C.muted, maxWidth: 280, marginBottom: 8, lineHeight: 1.6 }}>Create your first project to start generating mock REST APIs with fake data.</p>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 24, margin: '12px 0 28px', flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -340,7 +347,7 @@ export default function Dashboard() {
             </div>
           )
         })()}
-      </div>
+      </main>
 
       {/* CREATE MODAL */}
       {showModal && (

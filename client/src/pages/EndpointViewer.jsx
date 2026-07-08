@@ -106,25 +106,26 @@ export default function EndpointViewer() {
 
   return (
     <div className="page-enter" style={{ minHeight:'100vh', background:C.bg, color:C.fg, fontFamily:"'DM Sans',sans-serif" }}>
-      <style>{FONTS}{ANIM}{`*,*::before,*::after{box-sizing:border-box;margin:0;padding:0} input::placeholder{color:#475569}`}</style>
+      <style>{FONTS}{ANIM}{`*,*::before,*::after{box-sizing:border-box;margin:0;padding:0} input::placeholder{color:#A3ADC2} .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}`}</style>
 
       {/* HEADER */}
       <div className="ev-nav" style={{ borderBottom:`1px solid ${C.border}`, padding:'0 clamp(1.5rem,5vw,3rem)', height:60, display:'flex', alignItems:'center' }}>
         <div style={{ maxWidth:900, margin:'0 auto', width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
           <nav style={{ display:'flex', alignItems:'center', gap:8, fontFamily:"'DM Mono',monospace", fontSize:13, color:C.muted, minWidth:0, overflow:'hidden' }}>
             <Link to="/dashboard" style={{ color:C.muted, textDecoration:'none', flexShrink:0 }} onMouseEnter={e=>e.target.style.color=C.fg} onMouseLeave={e=>e.target.style.color=C.muted}>Dashboard</Link>
-            <span className="ev-crumb-mid" style={{color:'#475569',flexShrink:0}}>/</span>
+            <span className="ev-crumb-mid" style={{color:'#94A3B8',flexShrink:0}}>/</span>
             <Link className="ev-crumb-mid" to={`/project/${slug}`} style={{ color:C.muted, textDecoration:'none', flexShrink:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }} onMouseEnter={e=>e.target.style.color=C.fg} onMouseLeave={e=>e.target.style.color=C.muted}>{slug}</Link>
-            <span className="ev-crumb-mid2" style={{color:'#475569',flexShrink:0}}>/</span>
+            <span className="ev-crumb-mid2" style={{color:'#94A3B8',flexShrink:0}}>/</span>
             <Link className="ev-crumb-mid2" to={`/project/${slug}/resource/${name}`} style={{ color:C.muted, textDecoration:'none', flexShrink:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }} onMouseEnter={e=>e.target.style.color=C.fg} onMouseLeave={e=>e.target.style.color=C.muted}>{name}</Link>
-            <span style={{color:'#475569',flexShrink:0}}>/</span>
+            <span style={{color:'#94A3B8',flexShrink:0}}>/</span>
             <span style={{color:C.fg,flexShrink:0}}>endpoints</span>
           </nav>
           <Link className="ev-schema-btn" to={`/project/${slug}/resource/${name}`} style={{ fontSize:12, padding:'0.35rem 0.85rem', borderRadius:8, border:`1px solid ${C.border}`, color:C.muted, textDecoration:'none', transition:'color 150ms,border-color 150ms', flexShrink:0 }} onMouseEnter={e=>{e.currentTarget.style.color=C.fg;e.currentTarget.style.borderColor=C.muted}} onMouseLeave={e=>{e.currentTarget.style.color=C.muted;e.currentTarget.style.borderColor=C.border}}>← Schema</Link>
         </div>
       </div>
 
-      <div style={{ maxWidth:900, margin:'0 auto', padding:'2rem clamp(1.5rem,5vw,3rem)', display:'flex', flexDirection:'column', gap:20 }}>
+      <main style={{ maxWidth:900, margin:'0 auto', padding:'2rem clamp(1.5rem,5vw,3rem)', display:'flex', flexDirection:'column', gap:20 }}>
+        <h1 className="sr-only">{name} endpoints — {slug}</h1>
 
         {/* Base URL */}
         <div style={{ display:'flex', alignItems:'center', gap:12, padding:'0.75rem 1rem', borderRadius:10, border:`1px solid ${C.border}`, background:'rgba(255,255,255,0.02)' }}>
@@ -201,7 +202,7 @@ export default function EndpointViewer() {
             </div>
           </div>
         )}
-      </div>
+      </main>
     </div>
   )
 }

@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /project/
+Disallow: /settings
+Disallow: /reset-password
+Disallow: /verify-otp
+
+Sitemap: https://mockapi.spacego.online/sitemap.xml

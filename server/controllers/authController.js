@@ -19,16 +19,26 @@ const signToken = (user) =>
 // SameSite=None is required because the frontend (Vercel) and backend (Render)
 // are different domains; that in turn requires Secure, which only works over
 // HTTPS — fine in production, so we relax both to lax/false for local dev (http).
+//
+// Priority 4 fix: Secure/SameSite are now derived from the *actual* request
+// (req.secure, honoring `trust proxy` for Render's HTTPS-terminating proxy)
+// instead of a static `process.env.NODE_ENV === 'production'` check taken once
+// at module load. If NODE_ENV was ever missing/misconfigured on the host, the
+// old code would silently send the cookie without Secure — this can't happen
+// now, since it's computed per-request from whether the connection is actually HTTPS.
 const COOKIE_NAME = 'token'
-const cookieOptions = {
-  httpOnly: true,
-  secure:   process.env.NODE_ENV === 'production',
-  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-  maxAge:   7 * 24 * 60 * 60 * 1000, // 7d — mirrors JWT expiry above
-  path:     '/',
+const buildCookieOptions = (req) => {
+  const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https'
+  return {
+    httpOnly: true,
+    secure:   isHttps,
+    sameSite: isHttps ? 'none' : 'lax',
+    maxAge:   7 * 24 * 60 * 60 * 1000, // 7d — mirrors JWT expiry above
+    path:     '/',
+  }
 }
-const setAuthCookie   = (res, token) => res.cookie(COOKIE_NAME, token, cookieOptions)
-const clearAuthCookie = (res) => res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: undefined })
+const setAuthCookie   = (res, token, req) => res.cookie(COOKIE_NAME, token, buildCookieOptions(req))
+const clearAuthCookie = (res, req) => res.clearCookie(COOKIE_NAME, { ...buildCookieOptions(req), maxAge: undefined })
 
 const generateOTP = () =>
   Math.floor(100000 + Math.random() * 900000).toString()
@@ -152,7 +162,7 @@ export const authController = {
       await user.save()
 
       const token = signToken(user)
-      setAuthCookie(res, token)
+      setAuthCookie(res, token, req)
       res.json({
         success: true,
         user: { id: user._id, name: user.name, email: user.email },
@@ -386,7 +396,7 @@ export const authController = {
       }
 
       const token = signToken(user)
-      setAuthCookie(res, token)
+      setAuthCookie(res, token, req)
       res.json({
         success: true,
         user: { id: user._id, name: user.name, email: user.email },
@@ -398,7 +408,7 @@ export const authController = {
   // No authenticateToken guard — calling this with no/expired cookie should
   // still succeed (idempotent: end state is "no cookie" either way).
   async logout(req, res) {
-    clearAuthCookie(res)
+    clearAuthCookie(res, req)
     res.json({ success: true })
   },
 
@@ -591,7 +601,7 @@ export const authController = {
       }
 
       await User.findByIdAndDelete(user._id)
-      clearAuthCookie(res)
+      clearAuthCookie(res, req)
       res.json({ success: true, message: 'Account deleted successfully' })
     } catch (err) { next(err) }
   },

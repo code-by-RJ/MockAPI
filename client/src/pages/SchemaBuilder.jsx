@@ -125,16 +125,18 @@ export default function SchemaBuilder() {
 
   return (
     <div className="page-enter" style={{ minHeight:'100vh', background:C.bg, color:C.fg, fontFamily:"'DM Sans',sans-serif", overflowX:'hidden', maxWidth:'100vw' }}>
-      <style>{FONTS}{ANIM}{`*,*::before,*::after{box-sizing:border-box;margin:0;padding:0} input::placeholder,textarea::placeholder{color:#475569} select option{background:#1E293B;color:#F8FAFC} @media(max-width:900px){.sb-grid{grid-template-columns:1fr !important}.sb-sticky{position:static !important}.sb-header{flex-direction:column;align-items:flex-start !important;gap:12px !important;height:auto !important;padding:0.75rem clamp(1.5rem,5vw,3rem) !important}.sb-header-nav{flex-wrap:wrap}.sb-header-actions{flex-wrap:wrap}} @media(max-width:600px){.field-row{flex-wrap:wrap !important}.field-row input{min-width:0 !important}.field-del{display:none !important}.field-row:hover .field-del{display:flex !important}}`}</style>
+      <style>{FONTS}{ANIM}{`*,*::before,*::after{box-sizing:border-box;margin:0;padding:0} input::placeholder,textarea::placeholder{color:#A3ADC2} select option{background:#1E293B;color:#F8FAFC} .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0} @media(max-width:900px){.sb-grid{grid-template-columns:1fr !important}.sb-sticky{position:static !important}.sb-header{flex-direction:column;align-items:flex-start !important;gap:12px !important;height:auto !important;padding:0.75rem clamp(1.5rem,5vw,3rem) !important}.sb-header-nav{flex-wrap:wrap}.sb-header-actions{flex-wrap:wrap}} @media(max-width:600px){.field-row{flex-wrap:wrap !important}.field-row input{min-width:0 !important}.field-del{display:none !important}.field-row:hover .field-del{display:flex !important}}`}</style>
+
+      <h1 className="sr-only">Schema Builder — {name}</h1>
 
       {/* HEADER */}
       <div className="sb-header" style={{ borderBottom:`1px solid ${C.border}`, padding:'0 clamp(1.5rem,5vw,3rem)', height:60, display:'flex', alignItems:'center' }}>
         <div style={{ maxWidth:1200, margin:'0 auto', width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:8 }}>
           <nav style={{ display:'flex', alignItems:'center', gap:8, fontFamily:"'DM Mono',monospace", fontSize:13, color:C.muted }}>
             <Link to="/dashboard" style={{ color:C.muted, textDecoration:'none' }} onMouseEnter={e=>e.target.style.color=C.fg} onMouseLeave={e=>e.target.style.color=C.muted}>Dashboard</Link>
-            <span style={{color:'#475569'}}>/</span>
+            <span style={{color:'#94A3B8'}}>/</span>
             <Link to={`/project/${slug}`} style={{ color:C.muted, textDecoration:'none' }} onMouseEnter={e=>e.target.style.color=C.fg} onMouseLeave={e=>e.target.style.color=C.muted}>{slug}</Link>
-            <span style={{color:'#475569'}}>/</span>
+            <span style={{color:'#94A3B8'}}>/</span>
             <span style={{color:C.fg}}>{name}</span>
           </nav>
           <div className="sb-header-actions" style={{ display:'flex', alignItems:'center', gap:10 }}>
@@ -153,7 +155,7 @@ export default function SchemaBuilder() {
         </div>
       </div>
 
-      <div style={{ maxWidth:1200, margin:'0 auto', padding:'2rem clamp(1.5rem,5vw,3rem)' }}>
+      <main style={{ maxWidth:1200, margin:'0 auto', padding:'2rem clamp(1.5rem,5vw,3rem)' }}>
         <div className="sb-grid" style={{ display:'grid', gridTemplateColumns:'1fr 360px', gap:24, alignItems:'start' }}>
 
           {/* LEFT — Field editor */}
@@ -212,7 +214,9 @@ export default function SchemaBuilder() {
                         <circle cx="2.5" cy="13" r="1.5"/><circle cx="7.5" cy="13" r="1.5"/>
                       </svg>
                     </div>
+                    <label className="sr-only" htmlFor={`field-name-${i}`}>Field name</label>
                     <input
+                      id={`field-name-${i}`}
                       type="text"
                       placeholder="fieldName"
                       value={field.fieldName}
@@ -225,11 +229,15 @@ export default function SchemaBuilder() {
                                     : C.border
                       }}
                     />
-                    <select value={field.type} onChange={e=>updateField(i,'type',e.target.value)} style={{ ...selectBase, width:110 }}>
+                    <label className="sr-only" htmlFor={`field-type-${i}`}>Field type</label>
+                    <select id={`field-type-${i}`} value={field.type} onChange={e=>updateField(i,'type',e.target.value)} style={{ ...selectBase, width:110 }}>
                       {TYPES.map(t=><option key={t} value={t}>{t}</option>)}
                     </select>
                     {field.type==='enum' && (
-                      <input type="text" placeholder="a,b,c" value={(field.values||[]).join(',')} onChange={e=>updateField(i,'values',e.target.value.split(',').map(s=>s.trim()))} style={{ ...inputBase, width:100, color:C.yellow, borderColor:'rgba(251,191,36,0.25)', fontSize:11 }}/>
+                      <>
+                        <label className="sr-only" htmlFor={`field-enum-${i}`}>Enum values, comma separated</label>
+                        <input id={`field-enum-${i}`} type="text" placeholder="a,b,c" value={(field.values||[]).join(',')} onChange={e=>updateField(i,'values',e.target.value.split(',').map(s=>s.trim()))} style={{ ...inputBase, width:100, color:C.yellow, borderColor:'rgba(251,191,36,0.25)', fontSize:11 }}/>
+                      </>
                     )}
                     <label style={{ display:'flex', alignItems:'center', gap:6, cursor:'pointer', flexShrink:0 }}>
                       <input type="checkbox" checked={!!field.required} onChange={e=>updateField(i,'required',e.target.checked)} style={{ accentColor:C.accent, width:13, height:13, cursor:'pointer' }}/>
@@ -261,7 +269,7 @@ export default function SchemaBuilder() {
                   {previewCopied?'✓ Copied':'⎘ Copy'}
                 </button>
               </div>
-              <pre style={{ padding:'1rem', fontSize:11, fontFamily:"'DM Mono',monospace", color:`${C.accent}cc`, overflowX:'auto', whiteSpace:'pre-wrap', wordBreak:'break-all', lineHeight:1.7, minHeight:100 }}>
+              <pre tabIndex={0} role="region" aria-label="JSON preview" style={{ padding:'1rem', fontSize:11, fontFamily:"'DM Mono',monospace", color:`${C.accent}cc`, overflowX:'auto', whiteSpace:'pre-wrap', wordBreak:'break-all', lineHeight:1.7, minHeight:100 }}>
                 {fields.length===0||fields.every(f=>!f.fieldName.trim())
                   ? <span style={{color:'rgba(255,255,255,0.15)'}}>// add fields to see preview</span>
                   : JSON.stringify(preview,null,2)
@@ -271,7 +279,7 @@ export default function SchemaBuilder() {
 
             {/* Type reference */}
             <div style={{ border:`1px solid rgba(255,255,255,0.06)`, borderRadius:12, padding:'1rem', background:'rgba(255,255,255,0.02)' }}>
-              <p style={{ fontSize:10, fontWeight:600, color:C.muted, textTransform:'uppercase', letterSpacing:'0.08em', fontFamily:"'Space Grotesk',sans-serif", marginBottom:12 }}>Type Reference</p>
+              <p role="heading" aria-level="3" style={{ fontSize:10, fontWeight:600, color:C.muted, textTransform:'uppercase', letterSpacing:'0.08em', fontFamily:"'Space Grotesk',sans-serif", marginBottom:12 }}>Type Reference</p>
               <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
                 {TYPES.map(t=>(
                   <div key={t} style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
@@ -283,7 +291,7 @@ export default function SchemaBuilder() {
             </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   )
 }
