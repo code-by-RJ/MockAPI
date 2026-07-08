@@ -172,7 +172,7 @@ export default function SchemaBuilder() {
 
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
               {loading ? (
-                Array.from({length:3}).map((_,i)=><FieldRowSkeleton key={i}/>)
+                Array.from({length:5}).map((_,i)=><FieldRowSkeleton key={i}/>)
               ) : fields.length===0 ? (
                 <div style={{ padding:'3.5rem 2rem', display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center', border:`1px dashed ${C.border}`, borderRadius:12, background:'rgba(255,255,255,0.01)' }}>
                   <div style={{ width:44, height:44, borderRadius:10, border:`1px solid ${C.border}`, background:'rgba(255,255,255,0.02)', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:14 }}>
@@ -249,7 +249,9 @@ export default function SchemaBuilder() {
               )}
             </div>
 
-            {resource && (
+            {loading ? (
+              <div style={{ marginTop:20, height:236, borderRadius:14, background:'rgba(255,255,255,0.02)', border:`1px solid ${C.border}` }} />
+            ) : resource && (
               <div style={{ marginTop:20 }}>
                 <ErrorSimConfig slug={slug} resourceName={name} initialErrorRate={resource.errorRate||0} initialDelay={resource.delay||0}/>
               </div>
