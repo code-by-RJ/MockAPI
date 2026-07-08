@@ -110,7 +110,12 @@ const corsOptionsDelegate = (origin, callback) => {
   // health checks) — nothing to restrict there since browsers only send credentialed CORS
   // requests with an Origin header in the first place.
   if (!origin || allowedOrigins.includes(origin)) return callback(null, true)
-  return callback(new Error('Not allowed by CORS'))
+  // Bug fix (found during production testing): a plain `new Error()` here has no
+  // statusCode, so errorHandler.js defaulted it to 500 — a rejected CORS origin looked
+  // like a server crash instead of a clean, intentional 403. Attaching statusCode fixes that.
+  const err = new Error('Not allowed by CORS')
+  err.statusCode = 403
+  return callback(err)
 }
 
 app.use(helmet({
