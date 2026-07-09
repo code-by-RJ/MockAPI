@@ -127,6 +127,7 @@ export default function SchemaBuilder() {
     <div className="page-enter" style={{ minHeight:'100vh', background:C.bg, color:C.fg, fontFamily:"'DM Sans',sans-serif", overflowX:'hidden', maxWidth:'100vw' }}>
       <style>{FONTS}{ANIM}{`*,*::before,*::after{box-sizing:border-box;margin:0;padding:0} input::placeholder,textarea::placeholder{color:#A3ADC2} select option{background:#1E293B;color:#F8FAFC} .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0} @media(max-width:900px){.sb-grid{grid-template-columns:1fr !important}.sb-sticky{position:static !important}.sb-header{flex-direction:column;align-items:flex-start !important;gap:12px !important;height:auto !important;padding:0.75rem clamp(1.5rem,5vw,3rem) !important}.sb-header-nav{flex-wrap:wrap}.sb-header-actions{flex-wrap:wrap}} @media(max-width:600px){.field-row{flex-wrap:wrap !important}.field-row input{min-width:0 !important}.field-del{display:none !important}.field-row:hover .field-del{display:flex !important}}`}</style>
 
+      <header>
       <h1 className="sr-only">Schema Builder — {name}</h1>
 
       {/* HEADER */}
@@ -154,6 +155,7 @@ export default function SchemaBuilder() {
           </div>
         </div>
       </div>
+      </header>
 
       <main style={{ maxWidth:1200, margin:'0 auto', padding:'2rem clamp(1.5rem,5vw,3rem)' }}>
         <div className="sb-grid" style={{ display:'grid', gridTemplateColumns:'1fr 360px', gap:24, alignItems:'start' }}>

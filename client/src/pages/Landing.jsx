@@ -329,6 +329,7 @@ export default function Landing() {
           }
         </button>
       </nav>
+      <main>
 
       {/* MOBILE MENU */}
       <div style={{ position: "fixed", inset: 0, zIndex: 99, background: "rgba(15,23,42,0.97)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "2rem", opacity: menuOpen ? 1 : 0, pointerEvents: menuOpen ? "all" : "none", transition: "opacity 250ms ease" }}>
@@ -446,6 +447,7 @@ export default function Landing() {
           </div>
         </FadeIn>
       </section>
+      </main>
 
       {/* FOOTER */}
       <footer style={{ position: "relative", borderTop: `1px solid ${C.border}`, padding: "2rem clamp(1.5rem, 5vw, 4rem)", display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: "1rem" }}>

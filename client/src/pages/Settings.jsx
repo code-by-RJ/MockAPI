@@ -7,7 +7,7 @@ import api from '../lib/axios'
 const C = {
   bg: "#0F172A", surface: "#1E293B", surface2: "#272F42",
   border: "#334155", fg: "#F8FAFC", muted: "#94A3B8",
-  accent: "#22C55E", accentDim: "#16A34A", red: "#EF4444",
+  accent: "#22C55E", accentDim: "#16A34A", red: "#F87171",
 }
 
 const STRONG_PASSWORD = /^(?=.*[a-zA-Z])(?=.*\d).{8,}$/
@@ -457,7 +457,7 @@ export default function Settings() {
       padding: 'clamp(1.5rem, 4vw, 3rem) clamp(1rem, 5vw, 2rem)',
     }}>
       {/* Header */}
-      <div style={{ maxWidth: 640, margin: '0 auto 2rem' }}>
+      <header style={{ maxWidth: 640, margin: '0 auto 2rem' }}>
         <Link to="/dashboard" style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
           fontSize: 13, color: C.muted, textDecoration: 'none', marginBottom: 24,
@@ -467,7 +467,7 @@ export default function Settings() {
         </Link>
         <h1 style={{ margin: 0, fontSize: 'clamp(1.4rem, 3vw, 1.8rem)', fontWeight: 700 }}>Account Settings</h1>
         <p style={{ margin: '6px 0 0', fontSize: 14, color: C.muted }}>Manage your profile, password, and email</p>
-      </div>
+      </header>
 
       {/* Cards */}
       <main style={{ maxWidth: 640, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
