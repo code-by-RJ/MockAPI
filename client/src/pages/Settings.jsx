@@ -7,7 +7,7 @@ import api from '../lib/axios'
 const C = {
   bg: "#0F172A", surface: "#1E293B", surface2: "#272F42",
   border: "#334155", fg: "#F8FAFC", muted: "#94A3B8",
-  accent: "#22C55E", accentDim: "#16A34A", red: "#F87171",
+  accent: "#22C55E", accentDim: "#16A34A", red: "#F76D6D",
 }
 
 const STRONG_PASSWORD = /^(?=.*[a-zA-Z])(?=.*\d).{8,}$/
