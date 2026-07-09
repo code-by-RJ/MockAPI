@@ -118,20 +118,20 @@ function colorLine(str) {
   const re = /("(?:[^"\\]|\\.)*")(\s*:)?|(\b\d+\b)|([{}\[\],])/g
   const parts = []; let last = 0, m, key = 0
   while ((m = re.exec(str)) !== null) {
-    if (m.index > last) parts.push(<span key={key++} style={{ color: 'rgba(255,255,255,0.25)' }}>{str.slice(last, m.index)}</span>)
+    if (m.index > last) parts.push(<span key={key++} style={{ color: '#94A3B8' }}>{str.slice(last, m.index)}</span>)
     if (m[2] !== undefined) {
       parts.push(<span key={key++} style={{ color: '#60A5FA' }}>{m[1]}</span>)
-      parts.push(<span key={key++} style={{ color: 'rgba(255,255,255,0.25)' }}>{m[2]}</span>)
+      parts.push(<span key={key++} style={{ color: '#94A3B8' }}>{m[2]}</span>)
     } else if (m[1]) {
       parts.push(<span key={key++} style={{ color: '#22C55E' }}>{m[1]}</span>)
     } else if (m[3]) {
       parts.push(<span key={key++} style={{ color: '#FBBF24' }}>{m[3]}</span>)
     } else {
-      parts.push(<span key={key++} style={{ color: 'rgba(255,255,255,0.2)' }}>{m[4]}</span>)
+      parts.push(<span key={key++} style={{ color: '#94A3B8' }}>{m[4]}</span>)
     }
     last = m.index + m[0].length
   }
-  if (last < str.length) parts.push(<span key={key++} style={{ color: 'rgba(255,255,255,0.25)' }}>{str.slice(last)}</span>)
+  if (last < str.length) parts.push(<span key={key++} style={{ color: '#94A3B8' }}>{str.slice(last)}</span>)
   return parts
 }
 
@@ -204,7 +204,7 @@ function DemoModal({ onClose }) {
         {/* URL bar */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0.65rem 1.25rem', borderBottom: '1px solid #334155', background: 'rgba(0,0,0,0.25)' }}>
           <span style={{ flexShrink: 0, fontSize: 10, fontWeight: 700, fontFamily: "'DM Mono', monospace", color: mc, background: mc + '18', border: `1px solid ${mc}33`, padding: '0.15rem 0.45rem', borderRadius: 5 }}>{ep.method}</span>
-          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: 'rgba(255,255,255,0.45)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>api.spacego.online{ep.path}</span>
+          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#94A3B8', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>api.spacego.online{ep.path}</span>
           <span style={{ flexShrink: 0, fontSize: 11, fontFamily: "'DM Mono', monospace", padding: '0.15rem 0.5rem', borderRadius: 6, background: ep.status < 300 ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', color: ep.status < 300 ? '#22C55E' : '#EF4444', border: `1px solid ${ep.status < 300 ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}` }}>{ep.status} {ep.statusText}</span>
         </div>
 

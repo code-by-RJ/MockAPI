@@ -2,14 +2,14 @@ import { useState, useEffect } from 'react'
 import { useParams, Link }     from 'react-router-dom'
 
 const C = { bg:"#0F172A",surface:"#1E293B",surface2:"#272F42",border:"#334155",fg:"#F8FAFC",muted:"#94A3B8",accent:"#22C55E",accentDim:"#16A34A",red:"#EF4444",yellow:"#FBBF24",blue:"#60A5FA" }
-const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500&family=DM+Mono:wght@400;500&display=swap');`
+const FONTS = '' // fonts loaded globally via index.html <link> — see batch 1 fix
 const ANIM  = `@keyframes pageIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}.page-enter{animation:pageIn 0.35s ease forwards} @keyframes spin{to{transform:rotate(360deg)}} .spinner{animation:spin 0.8s linear infinite} @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}} .pulse{animation:pulse 2s infinite}`
 
 const METHOD_COLOR = {
   GET:    { text:'#22C55E', bg:'rgba(34,197,94,0.1)',  border:'rgba(34,197,94,0.25)'  },
   POST:   { text:'#60A5FA', bg:'rgba(96,165,250,0.1)', border:'rgba(96,165,250,0.25)' },
   PUT:    { text:'#FBBF24', bg:'rgba(251,191,36,0.1)', border:'rgba(251,191,36,0.25)' },
-  DELETE: { text:'#EF4444', bg:'rgba(239,68,68,0.1)',  border:'rgba(239,68,68,0.25)'  },
+  DELETE: { text:'#F87171', bg:'rgba(239,68,68,0.1)',  border:'rgba(239,68,68,0.25)'  },
 }
 
 const BASE_ENDPOINTS = (baseUrl, name) => [
@@ -94,7 +94,7 @@ export default function ShareableDemo() {
       <style>{FONTS}{ANIM}</style>
       <div style={{ textAlign:'center' }}>
         <div className="spinner" style={{ width:22, height:22, border:`2px solid rgba(34,197,94,0.2)`, borderTop:`2px solid ${C.accent}`, borderRadius:'50%', margin:'0 auto 12px' }}/>
-        <p style={{ fontSize:13, color:'rgba(255,255,255,0.3)', fontFamily:"'DM Sans',sans-serif" }}>Loading demo…</p>
+        <p style={{ fontSize:13, color:'#94A3B8', fontFamily:"'DM Sans',sans-serif" }}>Loading demo…</p>
       </div>
     </div>
   )
@@ -115,7 +115,7 @@ export default function ShareableDemo() {
 
   return (
     <div className="page-enter" style={{ minHeight:'100vh', background:C.bg, color:C.fg, fontFamily:"'DM Sans',sans-serif" }}>
-      <style>{FONTS}{ANIM}{`*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}`}</style>
+      <style>{FONTS}{ANIM}{`*,*::before,*::after{box-sizing:border-box;margin:0;padding:0} .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}`}</style>
 
       {/* HEADER */}
       <div style={{ borderBottom:`1px solid ${C.border}`, padding:'0 clamp(1.5rem,5vw,3rem)', height:60, display:'flex', alignItems:'center', background:'rgba(0,0,0,0.2)' }}>
@@ -129,7 +129,7 @@ export default function ShareableDemo() {
               </div>
               <Link to="/" style={{ fontFamily:"'Space Grotesk',sans-serif", fontWeight:700, fontSize:14, color:'rgba(255,255,255,0.7)', textDecoration:'none' }}>MockAPI</Link>
             </div>
-            <span style={{color:'rgba(255,255,255,0.2)' }}>/</span>
+            <span style={{color:'#94A3B8' }}>/</span>
             <span style={{ fontFamily:"'DM Mono',monospace", fontSize:13, color:C.fg }}>{slug}</span>
             <span style={{ fontSize:10, padding:'0.2rem 0.6rem', borderRadius:100, border:'1px solid rgba(34,197,94,0.25)', background:'rgba(34,197,94,0.08)', color:C.accent, fontFamily:"'Space Grotesk',sans-serif", fontWeight:500 }}>Public</span>
           </div>
@@ -139,11 +139,12 @@ export default function ShareableDemo() {
         </div>
       </div>
 
-      <div style={{ maxWidth:1000, margin:'0 auto', padding:'2rem clamp(1.5rem,5vw,3rem)', display:'flex', flexDirection:'column', gap:24 }}>
+      <main style={{ maxWidth:1000, margin:'0 auto', padding:'2rem clamp(1.5rem,5vw,3rem)', display:'flex', flexDirection:'column', gap:24 }}>
+        <h1 className="sr-only">{slug} — Public demo</h1>
 
         {/* Base URL */}
         <div style={{ display:'flex', alignItems:'center', gap:12, padding:'0.75rem 1rem', borderRadius:10, border:`1px solid ${C.border}`, background:'rgba(255,255,255,0.02)' }}>
-          <span style={{ fontSize:10, fontWeight:600, color:'rgba(255,255,255,0.3)', textTransform:'uppercase', letterSpacing:'0.08em', flexShrink:0, fontFamily:"'Space Grotesk',sans-serif" }}>Base URL</span>
+          <span style={{ fontSize:10, fontWeight:600, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.08em', flexShrink:0, fontFamily:"'Space Grotesk',sans-serif" }}>Base URL</span>
           <span style={{ fontFamily:"'DM Mono',monospace", fontSize:13, color:'rgba(255,255,255,0.6)', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{BASE_URL}</span>
           <CopyButton text={BASE_URL}/>
         </div>
@@ -171,7 +172,7 @@ export default function ShareableDemo() {
                     <div key={i} style={{ display:'flex', alignItems:'center', gap:12, padding:'0.65rem 1rem', borderBottom:i<endpoints.length-1?`1px solid rgba(255,255,255,0.04)`:'none', transition:'background 150ms' }} onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,0.02)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
                       <span style={{ flexShrink:0, padding:'0.15rem 0.4rem', borderRadius:5, border:`1px solid ${mc.border}`, background:mc.bg, color:mc.text, fontSize:11, fontWeight:700, fontFamily:"'DM Mono',monospace", width:56, textAlign:'center' }}>{ep.method}</span>
                       <span style={{ flex:1, fontFamily:"'DM Mono',monospace", fontSize:12, color:'rgba(255,255,255,0.55)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{ep.url}</span>
-                      <span style={{ fontSize:11, color:'rgba(255,255,255,0.25)', flexShrink:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:180 }}>{ep.description}</span>
+                      <span style={{ fontSize:11, color:'#94A3B8', flexShrink:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:180 }}>{ep.description}</span>
                       <CopyButton text={ep.url}/>
                     </div>
                   )
@@ -181,13 +182,13 @@ export default function ShareableDemo() {
               {activeRes.schema?.length>0 && (
                 <div style={{ border:`1px solid ${C.border}`, borderRadius:10, overflow:'hidden' }}>
                   <div style={{ padding:'0.6rem 1rem', borderBottom:`1px solid rgba(255,255,255,0.06)`, background:'rgba(255,255,255,0.02)' }}>
-                    <span style={{ fontSize:11, fontWeight:600, color:'rgba(255,255,255,0.4)', textTransform:'uppercase', letterSpacing:'0.08em', fontFamily:"'Space Grotesk',sans-serif" }}>Schema</span>
+                    <span style={{ fontSize:11, fontWeight:600, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.08em', fontFamily:"'Space Grotesk',sans-serif" }}>Schema</span>
                   </div>
                   {activeRes.schema.map((f,i)=>(
                     <div key={i} style={{ display:'flex', alignItems:'center', gap:12, padding:'0.55rem 1rem', borderBottom:i<activeRes.schema.length-1?`1px solid rgba(255,255,255,0.04)`:'none' }}>
                       <span style={{ fontFamily:"'DM Mono',monospace", fontSize:13, color:'rgba(255,255,255,0.7)', width:128, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{f.fieldName}</span>
-                      <span style={{ fontSize:11, padding:'0.15rem 0.5rem', borderRadius:6, border:'1px solid rgba(34,197,94,0.2)', background:'rgba(34,197,94,0.08)', color:`${C.accent}aa`, fontFamily:"'DM Mono',monospace" }}>{f.type}</span>
-                      {f.required && <span style={{ fontSize:10, color:'rgba(255,255,255,0.25)' }}>required</span>}
+                      <span style={{ fontSize:11, padding:'0.15rem 0.5rem', borderRadius:6, border:'1px solid rgba(34,197,94,0.2)', background:'rgba(34,197,94,0.08)', color:C.accent, fontFamily:"'DM Mono',monospace" }}>{f.type}</span>
+                      {f.required && <span style={{ fontSize:10, color:'#94A3B8' }}>required</span>}
                     </div>
                   ))}
                 </div>
@@ -201,13 +202,13 @@ export default function ShareableDemo() {
                 <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0.6rem 1rem', borderBottom:`1px solid rgba(255,255,255,0.06)`, background:'rgba(255,255,255,0.02)' }}>
                   <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                     <span className="pulse" style={{ width:7, height:7, borderRadius:'50%', background:C.accent, display:'inline-block' }}/>
-                    <span style={{ fontSize:11, color:'rgba(255,255,255,0.4)', fontFamily:"'DM Mono',monospace" }}>GET /{activeRes.name}?limit=3</span>
+                    <span style={{ fontSize:11, color:'#94A3B8', fontFamily:"'DM Mono',monospace" }}>GET /{activeRes.name}?limit=3</span>
                   </div>
                 </div>
                 <LiveDataPreview url={`${BASE_URL}/${activeRes.name}`} key={activeRes.name}/>
               </div>
               <div style={{ textAlign:'center', paddingTop:4 }}>
-                <p style={{ fontSize:10, color:'rgba(255,255,255,0.2)', fontFamily:"'DM Sans',sans-serif" }}>
+                <p style={{ fontSize:10, color:'#94A3B8', fontFamily:"'DM Sans',sans-serif" }}>
                   Powered by <Link to="/" style={{ color:`${C.accent}66`, textDecoration:'none' }}>MockAPI</Link> · mockapi.spacego.online
                 </p>
               </div>
@@ -217,10 +218,10 @@ export default function ShareableDemo() {
 
         {resources.length===0 && (
           <div style={{ padding:'5rem 2rem', textAlign:'center' }}>
-            <p style={{ fontSize:13, color:'rgba(255,255,255,0.3)', fontFamily:"'DM Sans',sans-serif" }}>This project has no resources yet.</p>
+            <p style={{ fontSize:13, color:'#94A3B8', fontFamily:"'DM Sans',sans-serif" }}>This project has no resources yet.</p>
           </div>
         )}
-      </div>
+      </main>
     </div>
   )
 }

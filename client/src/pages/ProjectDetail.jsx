@@ -236,7 +236,7 @@ export default function ProjectDetail() {
         .row-hover:hover{background:rgba(255,255,255,0.02)}
         .action-btn{display:inline-flex;align-items:center;padding:0.25rem 0.6rem;border-radius:8px;border:1px solid ${C.border};background:transparent;color:${C.muted};font-size:11px;cursor:pointer;transition:color 150ms,border-color 150ms;font-family:'DM Sans',sans-serif;text-decoration:none}
         .action-btn:hover{color:${C.fg};border-color:${C.muted}}
-        .del-btn{display:inline-flex;align-items:center;padding:0.25rem 0.5rem;border-radius:8px;background:transparent;border:none;color:rgba(255,255,255,0.2);font-size:13px;cursor:pointer;transition:color 150ms,background 150ms}
+        .del-btn{display:inline-flex;align-items:center;padding:0.25rem 0.5rem;border-radius:8px;background:transparent;border:none;color:#94A3B8;font-size:13px;cursor:pointer;transition:color 150ms,background 150ms}
         .del-btn:hover{color:${C.red};background:rgba(239,68,68,0.08)}
         .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
       `}</style>
@@ -282,7 +282,7 @@ export default function ProjectDetail() {
             {/* Head */}
             <div style={{ display:'flex', alignItems:'center', gap:16, padding:'0.6rem 1rem', background:'rgba(255,255,255,0.02)', borderBottom:`1px solid ${C.border}`, minWidth:596 }}>
               {['Name','Endpoint','Fields','Records','Actions'].map((h,i)=>(
-                <span key={h} style={{ fontSize:11, fontWeight:500, color:'rgba(255,255,255,0.3)', width:i===0?144:i===2?56:i===3?70:i===4?150:'auto', flex:i===1?1:undefined, textAlign:i===2||i===3||i===4?'center':undefined, fontFamily:"'Space Grotesk',sans-serif" }}>{h}</span>
+                <span key={h} style={{ fontSize:11, fontWeight:500, color:'#94A3B8', width:i===0?144:i===2?56:i===3?70:i===4?150:'auto', flex:i===1?1:undefined, textAlign:i===2||i===3||i===4?'center':undefined, fontFamily:"'Space Grotesk',sans-serif" }}>{h}</span>
               ))}
             </div>
 
@@ -296,7 +296,7 @@ export default function ProjectDetail() {
                   </svg>
                 </div>
                 <p style={{ fontSize:14, fontWeight:500, color:'rgba(255,255,255,0.5)', marginBottom:6, fontFamily:"'Space Grotesk',sans-serif" }}>No resources yet</p>
-                <p style={{ fontSize:12, color:'rgba(255,255,255,0.25)', maxWidth:260, marginBottom:20, lineHeight:1.6 }}>Resources are your API endpoints — like <code style={{fontFamily:"'DM Mono',monospace",color:'rgba(255,255,255,0.4)'}}>users</code> or <code style={{fontFamily:"'DM Mono',monospace",color:'rgba(255,255,255,0.4)'}}>products</code>. Each gets full CRUD automatically.</p>
+                <p style={{ fontSize:12, color:'#94A3B8', maxWidth:260, marginBottom:20, lineHeight:1.6 }}>Resources are your API endpoints — like <code style={{fontFamily:"'DM Mono',monospace",color:'#94A3B8'}}>users</code> or <code style={{fontFamily:"'DM Mono',monospace",color:'#94A3B8'}}>products</code>. Each gets full CRUD automatically.</p>
                 <button onClick={()=>setShowModal(true)} style={{ fontSize:12, padding:'0.5rem 1.25rem', borderRadius:8, background:C.accent, color:'#0F172A', fontFamily:"'Space Grotesk',sans-serif", fontWeight:600, border:'none', cursor:'pointer' }}>+ Add first resource</button>
               </div>
             ) : (
@@ -304,9 +304,9 @@ export default function ProjectDetail() {
                 <div key={r.name} className="row-hover" style={{ display:'flex', alignItems:'center', gap:16, padding:'0.75rem 1rem', borderBottom:`1px solid rgba(255,255,255,0.04)`, transition:'background 150ms', minWidth:596 }}>
                   <span style={{ width:144, fontFamily:"'DM Mono',monospace", fontSize:13, color:C.fg, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{r.name}</span>
                   <span style={{ flex:1, fontFamily:"'DM Mono',monospace", fontSize:11, color:'rgba(255,255,255,0.6)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{BASE_URL}/{r.name}</span>
-                  <span style={{ width:56, textAlign:'center', fontSize:12, color:'rgba(255,255,255,0.4)' }}>{r.schema?.length ?? 0}</span>
+                  <span style={{ width:56, textAlign:'center', fontSize:12, color:'#94A3B8' }}>{r.schema?.length ?? 0}</span>
                   {/* Records count — fetched from engine API */}
-                  <span style={{ width:70, textAlign:'center', fontSize:12, fontFamily:"'DM Mono',monospace", color: recordCounts[r.name] !== undefined ? C.accent : 'rgba(255,255,255,0.2)' }}>
+                  <span style={{ width:70, textAlign:'center', fontSize:12, fontFamily:"'DM Mono',monospace", color: recordCounts[r.name] !== undefined ? C.accent : '#94A3B8' }}>
                     {recordCounts[r.name] !== undefined ? recordCounts[r.name] : '—'}
                   </span>
                   <div style={{ width:150, display:'flex', alignItems:'center', justifyContent:'flex-end', gap:5 }}>
@@ -367,7 +367,7 @@ export default function ProjectDetail() {
                 onKeyDown={e=>e.key==='Enter'&&createResource()}
                 style={{ width:'100%', background:nameError&&nameTouched?'rgba(239,68,68,0.05)':'rgba(0,0,0,0.3)', border:`1px solid ${nameError&&nameTouched?'rgba(239,68,68,0.5)':C.border}`, borderRadius:10, padding:'0.65rem 1rem', fontFamily:"'DM Mono',monospace", fontSize:13, color:C.fg, outline:'none', boxSizing:'border-box' }}/>
               {nameError && nameTouched && <p style={{ marginTop:6, fontSize:11, color:C.red, display:'flex', alignItems:'center', gap:4 }}><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10" opacity="0.2"/><line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/><circle cx="12" cy="16" r="1.2"/></svg>{nameError}</p>}
-              {newName.trim() && !nameError && <p style={{ marginTop:6, fontSize:11, fontFamily:"'DM Mono',monospace", color:'rgba(255,255,255,0.25)' }}>endpoint: <span style={{color:C.accent}}>/api/{slug}/{newName.toLowerCase().trim()}</span></p>}
+              {newName.trim() && !nameError && <p style={{ marginTop:6, fontSize:11, fontFamily:"'DM Mono',monospace", color:'#94A3B8' }}>endpoint: <span style={{color:C.accent}}>/api/{slug}/{newName.toLowerCase().trim()}</span></p>}
             </div>
             <div style={{ display:'flex', gap:10 }}>
               <button onClick={closeModal} style={{ flex:1, padding:'0.6rem', borderRadius:10, border:`1px solid ${C.border}`, background:'transparent', fontSize:13, color:C.muted, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }} onMouseEnter={e=>{e.currentTarget.style.color=C.fg;e.currentTarget.style.borderColor=C.muted}} onMouseLeave={e=>{e.currentTarget.style.color=C.muted;e.currentTarget.style.borderColor=C.border}}>Cancel</button>
@@ -391,7 +391,7 @@ export default function ProjectDetail() {
                 onKeyDown={e=>e.key==='Enter'&&handleRenameConfirm()}
                 style={{ width:'100%', background:renameError&&renameTouched?'rgba(239,68,68,0.05)':'rgba(0,0,0,0.3)', border:`1px solid ${renameError&&renameTouched?'rgba(239,68,68,0.5)':C.border}`, borderRadius:10, padding:'0.65rem 1rem', fontFamily:"'DM Mono',monospace", fontSize:13, color:C.fg, outline:'none', boxSizing:'border-box' }}/>
               {renameError && renameTouched && <p style={{ marginTop:6, fontSize:11, color:C.red, display:'flex', alignItems:'center', gap:4 }}><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10" opacity="0.2"/><line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/><circle cx="12" cy="16" r="1.2"/></svg>{renameError}</p>}
-              {renameValue.trim() && !renameError && <p style={{ marginTop:6, fontSize:11, fontFamily:"'DM Mono',monospace", color:'rgba(255,255,255,0.25)' }}>endpoint: <span style={{color:C.accent}}>/api/{slug}/{renameValue.toLowerCase().trim()}</span></p>}
+              {renameValue.trim() && !renameError && <p style={{ marginTop:6, fontSize:11, fontFamily:"'DM Mono',monospace", color:'#94A3B8' }}>endpoint: <span style={{color:C.accent}}>/api/{slug}/{renameValue.toLowerCase().trim()}</span></p>}
             </div>
             <div style={{ display:'flex', gap:10 }}>
               <button onClick={closeRenameModal} style={{ flex:1, padding:'0.6rem', borderRadius:10, border:`1px solid ${C.border}`, background:'transparent', fontSize:13, color:C.muted, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }} onMouseEnter={e=>{e.currentTarget.style.color=C.fg;e.currentTarget.style.borderColor=C.muted}} onMouseLeave={e=>{e.currentTarget.style.color=C.muted;e.currentTarget.style.borderColor=C.border}}>Cancel</button>

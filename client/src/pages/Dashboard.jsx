@@ -336,7 +336,7 @@ export default function Dashboard() {
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="1.5" strokeLinecap="round" aria-hidden="true" style={{ marginBottom: 14, opacity: 0.5 }}>
                   <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
                 </svg>
-                <p style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.4)', fontFamily: "'Space Grotesk', sans-serif", marginBottom: 6 }}>No projects match "{searchQuery}"</p>
+                <p style={{ fontSize: 14, fontWeight: 500, color: '#94A3B8', fontFamily: "'Space Grotesk', sans-serif", marginBottom: 6 }}>No projects match "{searchQuery}"</p>
                 <button onClick={() => setSearchQuery('')} style={{ fontSize: 12, color: C.accent, background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}>Clear filter</button>
               </div>
             )

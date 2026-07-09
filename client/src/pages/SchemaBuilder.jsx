@@ -178,8 +178,8 @@ export default function SchemaBuilder() {
                   <div style={{ width:44, height:44, borderRadius:10, border:`1px solid ${C.border}`, background:'rgba(255,255,255,0.02)', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:14 }}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.accent} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
                   </div>
-                  <p style={{ fontSize:13, fontWeight:500, color:'rgba(255,255,255,0.4)', marginBottom:6, fontFamily:"'Space Grotesk',sans-serif" }}>No fields defined</p>
-                  <p style={{ fontSize:12, color:'rgba(255,255,255,0.2)', maxWidth:220, marginBottom:16, lineHeight:1.6 }}>Add fields to define the shape of your fake data.</p>
+                  <p style={{ fontSize:13, fontWeight:500, color:'#94A3B8', marginBottom:6, fontFamily:"'Space Grotesk',sans-serif" }}>No fields defined</p>
+                  <p style={{ fontSize:12, color:'#94A3B8', maxWidth:220, marginBottom:16, lineHeight:1.6 }}>Add fields to define the shape of your fake data.</p>
                   <button onClick={addField} style={{ fontSize:12, padding:'0.45rem 1rem', borderRadius:8, background:'rgba(34,197,94,0.08)', border:`1px solid rgba(34,197,94,0.2)`, color:C.accent, cursor:'pointer', transition:'background 150ms', fontFamily:"'DM Sans',sans-serif" }}>+ Add first field</button>
                 </div>
               ) : (
@@ -241,9 +241,9 @@ export default function SchemaBuilder() {
                     )}
                     <label style={{ display:'flex', alignItems:'center', gap:6, cursor:'pointer', flexShrink:0 }}>
                       <input type="checkbox" checked={!!field.required} onChange={e=>updateField(i,'required',e.target.checked)} style={{ accentColor:C.accent, width:13, height:13, cursor:'pointer' }}/>
-                      <span style={{ fontSize:10, color:'rgba(255,255,255,0.3)' }}>req</span>
+                      <span style={{ fontSize:10, color:'#94A3B8' }}>req</span>
                     </label>
-                    <button onClick={()=>removeField(i)} className="field-del" style={{ width:28, height:28, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:8, background:'transparent', border:'none', color:'rgba(255,255,255,0.2)', cursor:'pointer', transition:'color 150ms,background 150ms', fontSize:13, flexShrink:0 }} onMouseEnter={e=>{e.currentTarget.style.color=C.red;e.currentTarget.style.background='rgba(239,68,68,0.08)'}} onMouseLeave={e=>{e.currentTarget.style.color='rgba(255,255,255,0.2)';e.currentTarget.style.background='transparent'}}>✕</button>
+                    <button onClick={()=>removeField(i)} className="field-del" style={{ width:28, height:28, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:8, background:'transparent', border:'none', color:'#94A3B8', cursor:'pointer', transition:'color 150ms,background 150ms', fontSize:13, flexShrink:0 }} onMouseEnter={e=>{e.currentTarget.style.color=C.red;e.currentTarget.style.background='rgba(239,68,68,0.08)'}} onMouseLeave={e=>{e.currentTarget.style.color='rgba(255,255,255,0.2)';e.currentTarget.style.background='transparent'}}>✕</button>
                   </div>
                 ))
               )}
@@ -273,7 +273,7 @@ export default function SchemaBuilder() {
               </div>
               <pre tabIndex={0} role="region" aria-label="JSON preview" style={{ padding:'1rem', fontSize:11, fontFamily:"'DM Mono',monospace", color:`${C.accent}cc`, overflowX:'auto', whiteSpace:'pre-wrap', wordBreak:'break-all', lineHeight:1.7, minHeight:100 }}>
                 {fields.length===0||fields.every(f=>!f.fieldName.trim())
-                  ? <span style={{color:'rgba(255,255,255,0.15)'}}>// add fields to see preview</span>
+                  ? <span style={{color:'#94A3B8'}}>// add fields to see preview</span>
                   : JSON.stringify(preview,null,2)
                 }
               </pre>

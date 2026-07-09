@@ -68,7 +68,7 @@ export default function ErrorSimConfig({ slug, resourceName, initialErrorRate = 
             style={{ background:`linear-gradient(to right,${errPct>0?C.red:C.border} 0%,${errPct>0?C.red:C.border} ${errPct}%,${C.surface2} ${errPct}%,${C.surface2} 100%)` }}
           />
           <div style={{ display:'flex', justifyContent:'space-between', marginTop:6, overflow:'hidden' }}>
-            {['0%','25%','50%','75%','100%'].map(t=><span key={t} style={{ fontSize:9, color:'rgba(255,255,255,0.2)', fontFamily:"'DM Mono',monospace" }}>{t}</span>)}
+            {['0%','25%','50%','75%','100%'].map(t=><span key={t} style={{ fontSize:9, color:'#94A3B8', fontFamily:"'DM Mono',monospace" }}>{t}</span>)}
           </div>
         </div>
 
@@ -92,7 +92,7 @@ export default function ErrorSimConfig({ slug, resourceName, initialErrorRate = 
             style={{ background:`linear-gradient(to right,${delay>0?C.yellow:C.border} 0%,${delay>0?C.yellow:C.border} ${delayPct}%,${C.surface2} ${delayPct}%,${C.surface2} 100%)` }}
           />
           <div style={{ display:'flex', justifyContent:'space-between', marginTop:6, overflow:'hidden' }}>
-            {['0','1s','2s','3s','4s','5s'].map(t=><span key={t} style={{ fontSize:9, color:'rgba(255,255,255,0.2)', fontFamily:"'DM Mono',monospace" }}>{t}</span>)}
+            {['0','1s','2s','3s','4s','5s'].map(t=><span key={t} style={{ fontSize:9, color:'#94A3B8', fontFamily:"'DM Mono',monospace" }}>{t}</span>)}
           </div>
         </div>
 

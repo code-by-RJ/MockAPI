@@ -15,15 +15,15 @@ const EMAIL_RE        = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 // ── Shared sub-components ────────────────────────────────────────────
 
-function Label({ children }) {
-  return <label style={{ display: 'block', fontSize: 12, color: C.muted, marginBottom: 6 }}>{children}</label>
+function Label({ children, htmlFor }) {
+  return <label htmlFor={htmlFor} style={{ display: 'block', fontSize: 12, color: C.muted, marginBottom: 6 }}>{children}</label>
 }
 
-function Input({ type = 'text', value, onChange, placeholder, autoComplete }) {
+function Input({ type = 'text', value, onChange, placeholder, autoComplete, ariaLabel, id }) {
   return (
     <input
-      type={type} value={value} onChange={onChange} placeholder={placeholder}
-      autoComplete={autoComplete}
+      id={id} type={type} value={value} onChange={onChange} placeholder={placeholder}
+      autoComplete={autoComplete} aria-label={!id ? (ariaLabel || placeholder) : undefined}
       style={{
         width: '100%', boxSizing: 'border-box',
         background: 'rgba(0,0,0,0.25)',
@@ -58,7 +58,7 @@ function SaveBtn({ loading, label = 'Save Changes', disabled, onClick }) {
       style={{
         marginTop: 18, padding: '0.65rem 1.4rem', borderRadius: 10, border: 'none',
         background: loading || disabled ? C.accentDim : C.accent,
-        color: '#fff', fontSize: 14, fontWeight: 600, cursor: loading || disabled ? 'not-allowed' : 'pointer',
+        color: '#0F172A', fontSize: 14, fontWeight: 600, cursor: loading || disabled ? 'not-allowed' : 'pointer',
         opacity: loading || disabled ? 0.7 : 1, transition: 'opacity 150ms',
       }}
     >
@@ -119,8 +119,9 @@ function ProfileCard() {
           </p>
         </div>
         <div>
-          <Label>Name</Label>
+          <Label htmlFor="settings-name">Name</Label>
           <Input
+            id="settings-name"
             value={name} onChange={e => { setName(e.target.value); setError('') }}
             placeholder="Your name" autoComplete="name"
           />
@@ -180,8 +181,8 @@ function PasswordCard() {
           { key: 'confirm', label: 'Confirm new password', auto: 'new-password' },
         ].map(({ key, label, auto }) => (
           <div key={key}>
-            <Label>{label}</Label>
-            <Input type="password" value={fields[key]} onChange={set(key)}
+            <Label htmlFor={`settings-pw-${key}`}>{label}</Label>
+            <Input id={`settings-pw-${key}`} type="password" value={fields[key]} onChange={set(key)}
               placeholder={key === 'next' ? 'Min 8 chars, 1 letter & 1 number' : ''}
               autoComplete={auto} />
             <FieldError msg={errors[key]} />
@@ -193,7 +194,7 @@ function PasswordCard() {
             style={{
               marginTop: 4, padding: '0.65rem 1.4rem', borderRadius: 10, border: 'none',
               background: loading ? C.accentDim : C.accent,
-              color: '#fff', fontSize: 14, fontWeight: 600,
+              color: '#0F172A', fontSize: 14, fontWeight: 600,
               cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1,
             }}>
             {loading ? 'Saving…' : 'Update Password'}
@@ -256,14 +257,14 @@ function EmailCard() {
       {step === 1 ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
-            <Label>Current password</Label>
-            <Input type="password" value={pw} onChange={e => { setPw(e.target.value); setErrors(er => ({ ...er, pw: '' })) }}
+            <Label htmlFor="settings-email-pw">Current password</Label>
+            <Input id="settings-email-pw" type="password" value={pw} onChange={e => { setPw(e.target.value); setErrors(er => ({ ...er, pw: '' })) }}
               placeholder="Verify it's you" autoComplete="current-password" />
             <FieldError msg={errors.pw} />
           </div>
           <div>
-            <Label>New email address</Label>
-            <Input type="email" value={newEmail} onChange={e => { setNewEmail(e.target.value); setErrors(er => ({ ...er, newEmail: '' })) }}
+            <Label htmlFor="settings-new-email">New email address</Label>
+            <Input id="settings-new-email" type="email" value={newEmail} onChange={e => { setNewEmail(e.target.value); setErrors(er => ({ ...er, newEmail: '' })) }}
               placeholder="you@example.com" autoComplete="email" />
             <FieldError msg={errors.newEmail} />
           </div>
@@ -272,7 +273,7 @@ function EmailCard() {
               style={{
                 marginTop: 4, padding: '0.65rem 1.4rem', borderRadius: 10, border: 'none',
                 background: loading ? C.accentDim : C.accent,
-                color: '#fff', fontSize: 14, fontWeight: 600,
+                color: '#0F172A', fontSize: 14, fontWeight: 600,
                 cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1,
               }}>
               {loading ? 'Sending OTP…' : 'Send Verification OTP'}
@@ -285,8 +286,8 @@ function EmailCard() {
             OTP sent to <span style={{ color: C.fg }}>{pendingEmail}</span>. Valid for 10 minutes.
           </p>
           <div>
-            <Label>Enter OTP</Label>
-            <Input value={otp} onChange={e => { setOtp(e.target.value); setErrors({}) }}
+            <Label htmlFor="settings-email-otp">Enter OTP</Label>
+            <Input id="settings-email-otp" value={otp} onChange={e => { setOtp(e.target.value); setErrors({}) }}
               placeholder="6-digit code" autoComplete="one-time-code" />
             <FieldError msg={errors.otp} />
           </div>
@@ -295,7 +296,7 @@ function EmailCard() {
               style={{
                 padding: '0.65rem 1.4rem', borderRadius: 10, border: 'none',
                 background: loading ? C.accentDim : C.accent,
-                color: '#fff', fontSize: 14, fontWeight: 600,
+                color: '#0F172A', fontSize: 14, fontWeight: 600,
                 cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1,
               }}>
               {loading ? 'Verifying…' : 'Confirm Change'}
@@ -410,8 +411,9 @@ function DeleteAccountCard() {
 
             {/* Password confirm */}
             <div style={{ marginBottom: 16 }}>
-              <Label>Confirm your password</Label>
+              <Label htmlFor="settings-delete-pw">Confirm your password</Label>
               <input
+                id="settings-delete-pw"
                 autoFocus type="password" value={password}
                 onChange={e => { setPassword(e.target.value); setPassError('') }}
                 onKeyDown={e => e.key === 'Enter' && handleDelete()}
@@ -434,7 +436,7 @@ function DeleteAccountCard() {
                 onMouseLeave={e => { e.currentTarget.style.color = C.muted; e.currentTarget.style.borderColor = C.border }}
               >Cancel</button>
               <button type="button" onClick={handleDelete} disabled={loading}
-                style={{ flex: 1, padding: '0.6rem', borderRadius: 10, background: loading ? 'rgba(239,68,68,0.5)' : C.red, color: '#fff', fontSize: 13, fontWeight: 600, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, fontFamily: "'Space Grotesk', sans-serif" }}>
+                style={{ flex: 1, padding: '0.6rem', borderRadius: 10, background: loading ? 'rgba(239,68,68,0.5)' : C.red, color: '#0F172A', fontSize: 13, fontWeight: 600, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, fontFamily: "'Space Grotesk', sans-serif" }}>
                 {loading ? 'Deleting…' : 'Yes, delete my account'}
               </button>
             </div>
@@ -468,12 +470,12 @@ export default function Settings() {
       </div>
 
       {/* Cards */}
-      <div style={{ maxWidth: 640, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <main style={{ maxWidth: 640, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
         <ProfileCard />
         <PasswordCard />
         <EmailCard />
         <DeleteAccountCard />
-      </div>
+      </main>
     </div>
   )
 }
